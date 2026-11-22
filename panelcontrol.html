@@ -488,7 +488,7 @@
                     if (payload.eventType === 'UPDATE' && payload.new.estado === 'ESCANEADO_MACROSCOPIA') {
                         mostrarToast(`✅ Frasco validado / regularizado: ${payload.new.codigo_frasco} (${formatearEtiqueta(payload.new.estado)})`);
                     } else if (payload.eventType === 'UPDATE' && payload.new.estado === 'PENDIENTE_REGULARIZAR') {
-                        mostrarToast(`⚠️ Frasco marcado para regularizar: ${payload.new.codigo_frasco}`);
+                        mostrarToast(`⚠️ Frasco bloqueado / regularizar: ${payload.new.codigo_frasco}`);
                     }
                     refrescarAreasActivas();
                 })
@@ -1127,7 +1127,22 @@
 
             if (error) return alert('Error: ' + error.message);
 
-            alert('🚨 Incidencia registrada. Gerencia ha sido alertada.');
+            const codigoFrasco = extraerCodigoFrasco(codigoIngresado);
+            if (codigoFrasco) {
+                const { error: errUpdateFrasco } = await db
+                    .from('frascos_muestra')
+                    .update({
+                        estado: 'PENDIENTE_REGULARIZAR',
+                        escaneado_por: operador
+                    })
+                    .eq('codigo_frasco', codigoFrasco);
+
+                if (errUpdateFrasco) {
+                    return alert('Incidencia guardada, pero no se pudo actualizar el estado del frasco: ' + errUpdateFrasco.message);
+                }
+            }
+
+            alert('🚨 Incidencia registrada y frasco marcado como PENDIENTE - REGULARIZAR.');
             document.getElementById('form-huerfano').reset();
             refrescarAreasActivas();
         });
