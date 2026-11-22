@@ -92,7 +92,7 @@
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 bg-slate-50 p-3 sm:p-4 rounded-lg border border-slate-200">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 bg-slate-50 p-3 sm:p-4 rounded-lg border border-slate-200">
                                 <div>
                                     <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Método de Pago *</label>
                                     <select id="tipo_pago" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm">
@@ -110,6 +110,11 @@
                                 <div>
                                     <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Cantidad de Frascos *</label>
                                     <input type="number" id="cantidad_frascos" min="1" max="15" value="1" required onchange="generarInputsFrascos()" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm font-bold">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase text-amber-800 mb-1">Código Fco (Salto Opcional)</label>
+                                    <input type="text" id="codigo_fco_manual" oninput="this.value=this.value.toUpperCase()" maxlength="6" class="w-full border border-amber-400 rounded-lg p-2.5 text-sm font-mono uppercase" placeholder="Ej: CE-203">
+                                    <span class="text-[10px] text-slate-500 leading-tight block mt-0.5">Vacío = sigue correlativo.</span>
                                 </div>
                             </div>
 
@@ -198,7 +203,7 @@
                         <div class="flex flex-col sm:flex-row gap-2 sm:gap-2.5 mb-3">
                             <input type="text" id="operador_macro" class="border border-slate-300 rounded-lg p-2.5 sm:p-3 text-sm w-full sm:w-44" placeholder="Patólogo / Tecnólogo">
                             <div class="flex gap-2 flex-1 min-w-0">
-                                <input type="text" id="input-escaneo" class="flex-1 min-w-0 border-2 border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-lg p-2.5 sm:p-3 text-sm sm:text-base font-mono uppercase" placeholder="Código (Ej: AP-2026-XXXX-F1)">
+                                <input type="text" id="input-escaneo" class="flex-1 min-w-0 border-2 border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-lg p-2.5 sm:p-3 text-sm sm:text-base font-mono uppercase" placeholder="Código (Ej: CE-001)">
                                 <button type="button" onclick="toggleCamaraEscaneo()" id="btn-camara" title="Escanear con cámara" class="border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50 font-semibold px-3 sm:px-3.5 py-2.5 sm:py-3 rounded-lg transition flex items-center justify-center shrink-0">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -248,7 +253,7 @@
                         <form id="form-huerfano" class="space-y-3">
                             <div>
                                 <label class="block text-xs font-bold text-red-900 mb-1">Código del frasco *</label>
-                                <input type="text" id="huerfano_nombre" required class="w-full border border-red-300 rounded-lg p-2.5 text-sm font-mono uppercase" placeholder="Ej: AP-2026-1449-F2 o SIN-CODIGO">
+                                <input type="text" id="huerfano_nombre" required class="w-full border border-red-300 rounded-lg p-2.5 text-sm font-mono uppercase" placeholder="Ej: CE-001 o SIN-CODIGO">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-red-900 mb-1">¿Qué pasó en el frasco? *</label>
@@ -403,18 +408,6 @@
             return `${year}-${month}-${day}`;
         }
 
-        function obtenerRangoDiaLocalISO(fechaYYYYMMDD) {
-            const base = fechaYYYYMMDD || obtenerFechaLocalYYYYMMDD();
-            const [y, m, d] = base.split('-').map(Number);
-            const inicioLocal = new Date(y, (m || 1) - 1, d || 1, 0, 0, 0, 0);
-            const finLocal = new Date(y, (m || 1) - 1, d || 1, 23, 59, 59, 999);
-            return {
-                fecha: base,
-                inicioISO: inicioLocal.toISOString(),
-                finISO: finLocal.toISOString()
-            };
-        }
-
         function formatearFechaLegible(fechaYYYYMMDD) {
             const hoy = obtenerFechaLocalYYYYMMDD();
             if (!fechaYYYYMMDD || fechaYYYYMMDD === hoy) {
@@ -456,7 +449,6 @@
         function perteneceAFechaSeleccionada(frasco, fechaYYYYMMDD) {
             const dt = obtenerFechaRegistroFrasco(frasco);
             if (!dt) {
-                // Respaldo si la tabla no tiene columna de fecha: tomar los registros del día si aplica
                 return fechaYYYYMMDD === obtenerFechaLocalYYYYMMDD();
             }
             return obtenerFechaLocalYYYYMMDD(dt) === fechaYYYYMMDD;
@@ -650,12 +642,15 @@
 
         function extraerCodigoFrasco(texto) {
             if (!texto) return null;
-            const match = String(texto).toUpperCase().match(/AP-\d{4}-\d+-F\d+/);
-            return match ? match[0] : null;
+            const upper = String(texto).toUpperCase();
+            const nuevoFormato = upper.match(/\b[A-Z]{2}-\d{3}\b/);
+            if (nuevoFormato) return nuevoFormato[0];
+            const anteriorFormato = upper.match(/AP-\d{4}-\d+-F\d+/);
+            return anteriorFormato ? anteriorFormato[0] : null;
         }
 
         function obtenerNumeroFrasco(codigoFrasco) {
-            const match = String(codigoFrasco || '').toUpperCase().match(/-F(\d+)$/);
+            const match = String(codigoFrasco || '').toUpperCase().match(/-(\d+)$/);
             return match ? parseInt(match[1], 10) : null;
         }
 
@@ -710,7 +705,7 @@
             }
 
             canalRealtime = db
-                .channel('patologia-realtime-sync-v8')
+                .channel('patologia-realtime-sync-v11')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'configuracion_cortesia' }, (payload) => {
                     const nuevaClave = payload.new?.clave_activa;
                     if (esFormatoClaveCortesiaValido(nuevaClave)) {
@@ -940,7 +935,7 @@
 
             areaImpresion.innerHTML = frascos.map((f, i) => {
                 const ord = f.ordenes_patologia || ordenBase || {};
-                const matchNum = f.codigo_frasco.match(/-F(\d+)$/i);
+                const matchNum = f.codigo_frasco.match(/-(\d+)$/i);
                 const etiquetaFrasco = matchNum ? `FRASCO ${matchNum[1]}` : `FRASCO ${i + 1}/${total}`;
 
                 return `
@@ -1032,10 +1027,15 @@
         document.getElementById('form-recepcion').addEventListener('submit', async (e) => {
             e.preventDefault();
             const cant = parseInt(document.getElementById('cantidad_frascos').value);
+            const codigoFcoManual = String(document.getElementById('codigo_fco_manual')?.value || '').trim().toUpperCase();
             const descripciones = Array.from(document.getElementsByName('desc_frasco[]')).map(i => i.value);
             const estadosPago = Array.from(document.getElementsByName('estado_pago_frasco[]')).map(i => i.value);
             const montosFrasco = Array.from(document.getElementsByName('monto_frasco[]')).map(i => parseFloat(i.value) || 0);
             const clavesCortesia = Array.from(document.getElementsByName('clave_cortesia[]')).map(i => normalizarClaveCortesia(i.value));
+
+            if (codigoFcoManual && !/^[A-Z]{2}-\d{3}$/.test(codigoFcoManual)) {
+                return alert('⚠️ El código manual de frasco debe tener formato AA-000 (por ejemplo: CE-203).');
+            }
 
             const requiereCortesia = estadosPago.some(est => est === 'CORTESIA_AUTORIZADA');
             let claveVigente = null;
@@ -1057,6 +1057,16 @@
                 }
             }
 
+            const { data: codigosReservados, error: errCodigos } = await db
+                .rpc('reservar_codigos_frasco', {
+                    p_cantidad: cant,
+                    p_codigo_inicio: codigoFcoManual || null
+                });
+
+            if (errCodigos || !Array.isArray(codigosReservados) || codigosReservados.length !== cant) {
+                return alert('Error al generar códigos correlativos de frasco: ' + (errCodigos?.message || 'Respuesta inválida'));
+            }
+
             const totalOrden = actualizarTotalOrden();
             const correlativo = `AP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -1076,7 +1086,7 @@
 
             const frascosInsert = descripciones.map((desc, idx) => ({
                 orden_id: orden.id,
-                codigo_frasco: `${correlativo}-F${idx + 1}`,
+                codigo_frasco: codigosReservados[idx],
                 descripcion_anatomica: desc,
                 estado_pago_frasco: estadosPago[idx],
                 monto_frasco: montosFrasco[idx]
