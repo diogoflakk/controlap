@@ -244,7 +244,17 @@
 
                 <!-- Apartado Independiente: Estado en Vivo de Frascos Registrados (Macroscopía) -->
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                    <h3 class="text-sm font-bold uppercase text-slate-700 mb-3">Estado en Vivo de Frascos Registrados — Macroscopía</h3>
+                    <div class="flex flex-wrap justify-between items-center gap-3 mb-3">
+                        <h3 class="text-sm font-bold uppercase text-slate-700">Estado en Vivo de Frascos Registrados — Macroscopía</h3>
+                        <div class="flex flex-wrap gap-2">
+                            <input type="text" id="filtro-texto-macro" oninput="cargarFrascosDetallados('tabla-frascos-macroscopia-detalle', 'macro')" class="border border-slate-300 rounded-lg px-3 py-1.5 text-xs w-64" placeholder="Buscar por N° boleta, médico, paciente o código...">
+                            <select id="filtro-estado-macro" onchange="cargarFrascosDetallados('tabla-frascos-macroscopia-detalle', 'macro')" class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold">
+                                <option value="TODOS">Todos los estados</option>
+                                <option value="EN_RECEPCION">EN - RECEPCION</option>
+                                <option value="ESCANEADO_MACROSCOPIA">ESCANEADO - MACROSCOPIA</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse text-sm">
                             <thead>
@@ -312,7 +322,17 @@
 
                 <!-- Apartado Independiente: Estado en Vivo de Frascos Registrados (Gerencia) -->
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                    <h3 class="text-sm font-bold uppercase text-slate-700 mb-3">Estado en Vivo de Frascos Registrados — Gerencia</h3>
+                    <div class="flex flex-wrap justify-between items-center gap-3 mb-3">
+                        <h3 class="text-sm font-bold uppercase text-slate-700">Estado en Vivo de Frascos Registrados — Gerencia</h3>
+                        <div class="flex flex-wrap gap-2">
+                            <input type="text" id="filtro-texto-gerencia" oninput="cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia')" class="border border-slate-300 rounded-lg px-3 py-1.5 text-xs w-64" placeholder="Buscar por N° boleta, médico, paciente o código...">
+                            <select id="filtro-estado-gerencia" onchange="cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia')" class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold">
+                                <option value="TODOS">Todos los estados</option>
+                                <option value="EN_RECEPCION">EN - RECEPCION</option>
+                                <option value="ESCANEADO_MACROSCOPIA">ESCANEADO - MACROSCOPIA</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse text-sm">
                             <thead>
@@ -356,6 +376,20 @@
         function formatearEtiqueta(valor) {
             if (!valor) return '';
             return String(valor).replace(/_/g, ' - ');
+        }
+
+        function formatearRegistradoPor(nombre) {
+            if (!nombre) return '-';
+            const limpio = String(nombre).trim();
+            const sinTildes = limpio.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+            if (sinTildes.startsWith('danalys')) {
+                return 'Danalys C.';
+            }
+            if (sinTildes.startsWith('maria')) {
+                return 'María V.';
+            }
+            return limpio;
         }
 
         function mostrarToast(mensaje) {
@@ -415,11 +449,11 @@
             }
             if (pestanasPermitidas.includes('macroscopia')) {
                 cargarPendientesMacro();
-                cargarFrascosDetallados('tabla-frascos-macroscopia-detalle');
+                cargarFrascosDetallados('tabla-frascos-macroscopia-detalle', 'macro');
             }
             if (pestanasPermitidas.includes('auditoria')) {
                 cargarAuditoria();
-                cargarFrascosDetallados('tabla-frascos-gerencia-detalle');
+                cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia');
             }
         }
 
@@ -502,11 +536,11 @@
             if (tab === 'recepcion') cargarRecepcionVivo();
             if (tab === 'macroscopia') {
                 cargarPendientesMacro();
-                cargarFrascosDetallados('tabla-frascos-macroscopia-detalle');
+                cargarFrascosDetallados('tabla-frascos-macroscopia-detalle', 'macro');
             }
             if (tab === 'auditoria') {
                 cargarAuditoria();
-                cargarFrascosDetallados('tabla-frascos-gerencia-detalle');
+                cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia');
             }
         }
 
@@ -712,7 +746,7 @@
                     <td class="p-2.5 font-mono font-bold text-slate-800">${f.codigo_frasco}</td>
                     <td class="p-2.5">${f.ordenes_patologia?.paciente_nombre || '-'}</td>
                     <td class="p-2.5">${f.descripcion_anatomica}</td>
-                    <td class="p-2.5 text-slate-700 font-medium">${f.ordenes_patologia?.usuario_recepcion || '-'}</td>
+                    <td class="p-2.5 text-slate-700 font-medium">${formatearRegistradoPor(f.ordenes_patologia?.usuario_recepcion)}</td>
                     <td class="p-2.5">
                         <span class="px-2.5 py-1 rounded-md text-xs font-bold ${badgeClass}">
                             ${formatearEtiqueta(f.estado)}
@@ -723,17 +757,46 @@
             }).join('');
         }
 
-        async function cargarFrascosDetallados(tbodyId) {
+        async function cargarFrascosDetallados(tbodyId, prefijoFiltro = 'macro') {
             const tbody = document.getElementById(tbodyId);
             if (!tbody) return;
+
+            const texto = (document.getElementById(`filtro-texto-${prefijoFiltro}`)?.value || '').trim().toLowerCase();
+            const estado = document.getElementById(`filtro-estado-${prefijoFiltro}`)?.value || 'TODOS';
 
             const { data } = await db
                 .from('frascos_muestra')
                 .select('*, ordenes_patologia(paciente_nombre, numero_comprobante, medico_remitente, usuario_recepcion)')
                 .order('id', { ascending: false })
-                .limit(25);
+                .limit(60);
 
-            tbody.innerHTML = (data || []).map(f => {
+            const filtrados = (data || []).filter(f => {
+                if (estado !== 'TODOS' && f.estado !== estado) return false;
+                if (!texto) return true;
+
+                const ord = f.ordenes_patologia || {};
+                const campos = [
+                    f.codigo_frasco,
+                    ord.paciente_nombre,
+                    f.descripcion_anatomica,
+                    ord.numero_comprobante,
+                    ord.medico_remitente,
+                    ord.usuario_recepcion
+                ].map(v => String(v || '').toLowerCase());
+
+                return campos.some(c => c.includes(texto));
+            });
+
+            if (filtrados.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="p-4 text-center text-xs text-slate-400">No hay registros que coincidan con el filtro aplicado.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtrados.slice(0, 25).map(f => {
                 const ord = f.ordenes_patologia || {};
                 const esRecepcion = f.estado === 'EN_RECEPCION';
                 const badgeClass = esRecepcion ? 'bg-amber-100 text-amber-800' : 'bg-emerald-700 text-white';
@@ -745,7 +808,7 @@
                     <td class="p-2.5">${f.descripcion_anatomica}</td>
                     <td class="p-2.5 font-mono text-xs font-semibold text-slate-700">${ord.numero_comprobante || '-'}</td>
                     <td class="p-2.5 text-slate-700">${ord.medico_remitente || '-'}</td>
-                    <td class="p-2.5 text-slate-700 font-medium">${ord.usuario_recepcion || '-'}</td>
+                    <td class="p-2.5 text-slate-700 font-medium">${formatearRegistradoPor(ord.usuario_recepcion)}</td>
                     <td class="p-2.5">
                         <span class="px-2.5 py-1 rounded-md text-xs font-bold ${badgeClass}">
                             ${formatearEtiqueta(f.estado)}
