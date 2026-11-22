@@ -838,12 +838,42 @@
             }
 
             try {
-                if (!html5QrCode) {
-                    html5QrCode = new Html5Qrcode('lector-camara');
+                if (html5QrCode && camaraActiva) {
+                    await html5QrCode.stop();
                 }
+
+                const config = {
+                    fps: 15,
+                    qrbox: { width: 280, height: 120 },
+                    aspectRatio: 1.777778,
+                    experimentalFeatures: {
+                        useBarCodeDetectorIfSupported: true
+                    }
+                };
+
+                if (window.Html5QrcodeSupportedFormats) {
+                    config.formatsToSupport = [
+                        Html5QrcodeSupportedFormats.CODE_128,
+                        Html5QrcodeSupportedFormats.CODE_39,
+                        Html5QrcodeSupportedFormats.EAN_13,
+                        Html5QrcodeSupportedFormats.QR_CODE
+                    ];
+                }
+
+                if (!html5QrCode) {
+                    html5QrCode = new Html5Qrcode('lector-camara', {
+                        formatsToSupport: config.formatsToSupport,
+                        verbose: false
+                    });
+                }
+
                 await html5QrCode.start(
-                    { facingMode: 'environment' },
-                    { fps: 10, qrbox: { width: 220, height: 110 } },
+                    {
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    },
+                    config,
                     async (decodedText) => {
                         const codigoLeido = String(decodedText || '').trim().toUpperCase();
                         if (!codigoLeido) return;
@@ -854,8 +884,9 @@
                     },
                     () => {}
                 );
+
                 camaraActiva = true;
-                estadoEl.innerText = 'Cámara activa: apunte el código de barras al recuadro.';
+                estadoEl.innerText = 'Cámara activa: alinee el código de barras completo (con márgenes blancos) dentro del recuadro.';
             } catch (err) {
                 estadoEl.innerText = 'No se pudo acceder a la cámara. Verifique permisos o use HTTPS/localhost.';
                 camaraActiva = false;
