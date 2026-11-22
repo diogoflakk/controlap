@@ -208,6 +208,7 @@
                                         <th class="p-2.5">Paciente</th>
                                         <th class="p-2.5">Muestra</th>
                                         <th class="p-2.5">Estado</th>
+                                        <th class="p-2.5">Acción</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tabla-pendientes-macro" class="divide-y divide-slate-100"></tbody>
@@ -217,19 +218,23 @@
 
                     <div class="bg-red-50 p-6 rounded-xl shadow-sm border-2 border-red-300">
                         <div class="flex items-center gap-2 text-red-700 font-bold text-lg mb-2">
-                            <span>🚨 Frasco Sin Código</span>
+                            <span>🚨 Reporte de Frasco / Incidencia</span>
                         </div>
                         <p class="text-xs text-red-800 mb-4">
-                            Si encuentra un frasco físico en mesa que <strong>NO tiene etiqueta del sistema</strong>, repórtelo aquí inmediatamente.
+                            Si encuentra un frasco sin código, sin pago o con alguna novedad en mesa, repórtelo aquí inmediatamente.
                         </p>
                         <form id="form-huerfano" class="space-y-3">
                             <div>
-                                <label class="block text-xs font-bold text-red-900 mb-1">Nombre escrito a mano en el frasco *</label>
-                                <input type="text" id="huerfano_nombre" required class="w-full border border-red-300 rounded-lg p-2 text-sm" placeholder="Ej: Juan Perez - Frasco 3">
+                                <label class="block text-xs font-bold text-red-900 mb-1">Código del frasco *</label>
+                                <input type="text" id="huerfano_nombre" required class="w-full border border-red-300 rounded-lg p-2 text-sm font-mono uppercase" placeholder="Ej: AP-2026-1449-F2 o SIN-CODIGO">
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-red-900 mb-1">Tipo de Muestra / Envase *</label>
-                                <input type="text" id="huerfano_desc" required class="w-full border border-red-300 rounded-lg p-2 text-sm" placeholder="Ej: Frasco chico sin boleta">
+                                <label class="block text-xs font-bold text-red-900 mb-1">¿Qué pasó en el frasco? *</label>
+                                <select id="huerfano_desc" required class="w-full border border-red-300 rounded-lg p-2 text-sm font-semibold">
+                                    <option value="NO REGISTRADO">No registrado</option>
+                                    <option value="NO PAGADO">No pagado</option>
+                                    <option value="SIN MUESTRA">Sin muestra</option>
+                                </select>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-red-900 mb-1">¿Quién lo dejó / turno?</label>
@@ -239,37 +244,6 @@
                                 Registrar Incidencia y Bloquear
                             </button>
                         </form>
-                    </div>
-                </div>
-
-                <!-- Apartado Independiente: Estado en Vivo de Frascos Registrados (Macroscopía) -->
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                    <div class="flex flex-wrap justify-between items-center gap-3 mb-3">
-                        <h3 class="text-sm font-bold uppercase text-slate-700">Estado en Vivo de Frascos Registrados — Macroscopía</h3>
-                        <div class="flex flex-wrap gap-2">
-                            <input type="text" id="filtro-texto-macro" oninput="cargarFrascosDetallados('tabla-frascos-macroscopia-detalle', 'macro')" class="border border-slate-300 rounded-lg px-3 py-1.5 text-xs w-64" placeholder="Buscar por N° boleta, médico, paciente o código...">
-                            <select id="filtro-estado-macro" onchange="cargarFrascosDetallados('tabla-frascos-macroscopia-detalle', 'macro')" class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold">
-                                <option value="TODOS">Todos los estados</option>
-                                <option value="EN_RECEPCION">EN - RECEPCION</option>
-                                <option value="ESCANEADO_MACROSCOPIA">ESCANEADO - MACROSCOPIA</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-sm">
-                            <thead>
-                                <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
-                                    <th class="p-2.5">Código Frasco</th>
-                                    <th class="p-2.5">Paciente</th>
-                                    <th class="p-2.5">Muestra</th>
-                                    <th class="p-2.5">N° Boleta / Comprobante *</th>
-                                    <th class="p-2.5">Médico Remitente</th>
-                                    <th class="p-2.5">Registrado Por</th>
-                                    <th class="p-2.5">Estado Macroscopía</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabla-frascos-macroscopia-detalle" class="divide-y divide-slate-100"></tbody>
-                        </table>
                     </div>
                 </div>
             </section>
@@ -301,14 +275,14 @@
                 </div>
 
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                    <h3 class="text-lg font-bold text-red-700 mb-2">⚠️ Registro de Frascos Físicos No Registrados (En Vivo)</h3>
+                    <h3 class="text-lg font-bold text-red-700 mb-2">⚠️ Registro de Incidencias / Frascos Reportados (En Vivo)</h3>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse text-sm">
                             <thead>
                                 <tr class="bg-red-50 text-black border-b border-red-200">
                                     <th class="p-3">Fecha / Hora</th>
-                                    <th class="p-3">Rotulado Manual</th>
-                                    <th class="p-3">Descripción</th>
+                                    <th class="p-3">Código / Rotulado</th>
+                                    <th class="p-3">¿Qué pasó?</th>
                                     <th class="p-3">Origen</th>
                                     <th class="p-3">Estado Auditoría</th>
                                     <th class="p-3">Monto Reg.</th>
@@ -329,6 +303,7 @@
                             <select id="filtro-estado-gerencia" onchange="cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia')" class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold">
                                 <option value="TODOS">Todos los estados</option>
                                 <option value="EN_RECEPCION">EN - RECEPCION</option>
+                                <option value="PENDIENTE_REGULARIZAR">PENDIENTE - REGULARIZAR</option>
                                 <option value="ESCANEADO_MACROSCOPIA">ESCANEADO - MACROSCOPIA</option>
                             </select>
                         </div>
@@ -378,6 +353,12 @@
             return String(valor).replace(/_/g, ' - ');
         }
 
+        function obtenerClaseEstadoFrasco(estado) {
+            if (estado === 'EN_RECEPCION') return 'bg-amber-100 text-amber-800';
+            if (estado === 'PENDIENTE_REGULARIZAR') return 'bg-red-100 text-red-700';
+            return 'bg-emerald-700 text-white';
+        }
+
         function formatearRegistradoPor(nombre) {
             if (!nombre) return '-';
             const limpio = String(nombre).trim();
@@ -390,6 +371,26 @@
                 return 'María V.';
             }
             return limpio;
+        }
+
+        function extraerCodigoFrasco(texto) {
+            if (!texto) return null;
+            const match = String(texto).toUpperCase().match(/AP-\d{4}-\d+-F\d+/);
+            return match ? match[0] : null;
+        }
+
+        async function marcarFrascoComoRegularizadoEscaneado(textoConCodigo, operador = 'Gerencia') {
+            const codigoFrasco = extraerCodigoFrasco(textoConCodigo);
+            if (!codigoFrasco) return;
+
+            await db
+                .from('frascos_muestra')
+                .update({
+                    estado: 'ESCANEADO_MACROSCOPIA',
+                    escaneado_por: operador,
+                    fecha_escaneo_macro: new Date().toISOString()
+                })
+                .eq('codigo_frasco', codigoFrasco);
         }
 
         function mostrarToast(mensaje) {
@@ -418,13 +419,15 @@
                 })
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'frascos_muestra' }, (payload) => {
                     if (payload.eventType === 'UPDATE' && payload.new.estado === 'ESCANEADO_MACROSCOPIA') {
-                        mostrarToast(`✅ Frasco validado en macroscopía: ${payload.new.codigo_frasco} (${formatearEtiqueta(payload.new.estado)})`);
+                        mostrarToast(`✅ Frasco validado / regularizado: ${payload.new.codigo_frasco} (${formatearEtiqueta(payload.new.estado)})`);
+                    } else if (payload.eventType === 'UPDATE' && payload.new.estado === 'PENDIENTE_REGULARIZAR') {
+                        mostrarToast(`⚠️ Frasco marcado para regularizar: ${payload.new.codigo_frasco}`);
                     }
                     refrescarAreasActivas();
                 })
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'incidencias_huerfanos' }, (payload) => {
                     if (payload.eventType === 'INSERT') {
-                        mostrarToast(`🚨 Frasco sin código reportado: ${payload.new.nombre_etiqueta_manual}`);
+                        mostrarToast(`🚨 Incidencia reportada: ${payload.new.nombre_etiqueta_manual}`);
                     } else if (payload.eventType === 'UPDATE') {
                         mostrarToast(`⚖️ Incidencia actualizada: ${formatearEtiqueta(payload.new.estado_auditoria)}`);
                     }
@@ -449,7 +452,6 @@
             }
             if (pestanasPermitidas.includes('macroscopia')) {
                 cargarPendientesMacro();
-                cargarFrascosDetallados('tabla-frascos-macroscopia-detalle', 'macro');
             }
             if (pestanasPermitidas.includes('auditoria')) {
                 cargarAuditoria();
@@ -536,7 +538,6 @@
             if (tab === 'recepcion') cargarRecepcionVivo();
             if (tab === 'macroscopia') {
                 cargarPendientesMacro();
-                cargarFrascosDetallados('tabla-frascos-macroscopia-detalle', 'macro');
             }
             if (tab === 'auditoria') {
                 cargarAuditoria();
@@ -739,8 +740,7 @@
             const tbody = document.getElementById('tabla-recepcion-vivo');
             if (!tbody) return;
             tbody.innerHTML = (data || []).map(f => {
-                const esRecepcion = f.estado === 'EN_RECEPCION';
-                const badgeClass = esRecepcion ? 'bg-amber-100 text-amber-800' : 'bg-emerald-700 text-white';
+                const badgeClass = obtenerClaseEstadoFrasco(f.estado);
                 return `
                 <tr>
                     <td class="p-2.5 font-mono font-bold text-slate-800">${f.codigo_frasco}</td>
@@ -757,7 +757,7 @@
             }).join('');
         }
 
-        async function cargarFrascosDetallados(tbodyId, prefijoFiltro = 'macro') {
+        async function cargarFrascosDetallados(tbodyId, prefijoFiltro = 'gerencia') {
             const tbody = document.getElementById(tbodyId);
             if (!tbody) return;
 
@@ -798,8 +798,7 @@
 
             tbody.innerHTML = filtrados.slice(0, 25).map(f => {
                 const ord = f.ordenes_patologia || {};
-                const esRecepcion = f.estado === 'EN_RECEPCION';
-                const badgeClass = esRecepcion ? 'bg-amber-100 text-amber-800' : 'bg-emerald-700 text-white';
+                const badgeClass = obtenerClaseEstadoFrasco(f.estado);
 
                 return `
                 <tr>
@@ -915,6 +914,32 @@
             document.getElementById('input-escaneo').value = '';
         }
 
+        async function reportarFrascoPendienteRegularizar(id, codigoFrasco, pacienteNombre, descripcionMuestra) {
+            const operador = document.getElementById('operador_macro')?.value.trim() || 'Turno Macroscopía';
+            const motivo = prompt(`Motivo para marcar "${codigoFrasco}" como PENDIENTE - REGULARIZAR:`) || 'NO PAGADO';
+
+            const { error } = await db
+                .from('frascos_muestra')
+                .update({
+                    estado: 'PENDIENTE_REGULARIZAR',
+                    escaneado_por: operador
+                })
+                .eq('id', id);
+
+            if (error) {
+                return alert('No se pudo actualizar el estado del frasco: ' + error.message);
+            }
+
+            await db.from('incidencias_huerfanos').insert([{
+                nombre_etiqueta_manual: codigoFrasco,
+                descripcion_muestra: `${motivo} (${pacienteNombre || 'Paciente'} - ${descripcionMuestra || 'Frasco'})`,
+                quien_entrego: 'Recepción / Macroscopía',
+                detectado_por: operador
+            }]);
+
+            refrescarAreasActivas();
+        }
+
         async function cargarPendientesMacro() {
             const { data } = await db
                 .from('frascos_muestra')
@@ -925,8 +950,10 @@
             const tbody = document.getElementById('tabla-pendientes-macro');
             if (!tbody) return;
             tbody.innerHTML = (data || []).map(f => {
-                const esRecepcion = f.estado === 'EN_RECEPCION';
-                const badgeClass = esRecepcion ? 'bg-amber-100 text-amber-800' : 'bg-emerald-700 text-white';
+                const badgeClass = obtenerClaseEstadoFrasco(f.estado);
+                const pacienteSafe = String(f.ordenes_patologia?.paciente_nombre || '').replace(/'/g, "\\'");
+                const descSafe = String(f.descripcion_anatomica || '').replace(/'/g, "\\'");
+
                 return `
                 <tr>
                     <td class="p-2.5 font-mono font-bold text-slate-800">${f.codigo_frasco}</td>
@@ -937,6 +964,13 @@
                             ${formatearEtiqueta(f.estado)}
                         </span>
                     </td>
+                    <td class="p-2.5">
+                        ${f.estado === 'EN_RECEPCION' ? `
+                            <button type="button" onclick="reportarFrascoPendienteRegularizar('${f.id}', '${f.codigo_frasco}', '${pacienteSafe}', '${descSafe}')" class="text-xs font-semibold bg-red-100 hover:bg-red-200 text-red-800 border border-red-300 px-2.5 py-1 rounded-md transition">
+                                Reportar
+                            </button>
+                        ` : '<span class="text-xs text-slate-400">-</span>'}
+                    </td>
                 </tr>
             `;
             }).join('');
@@ -945,17 +979,32 @@
         document.getElementById('form-huerfano').addEventListener('submit', async (e) => {
             e.preventDefault();
             const operador = document.getElementById('operador_macro').value.trim() || 'Turno Macroscopía';
+            const codigoIngresado = document.getElementById('huerfano_nombre').value.trim().toUpperCase();
+            const quePaso = document.getElementById('huerfano_desc').value;
 
             const { error } = await db.from('incidencias_huerfanos').insert([{
-                nombre_etiqueta_manual: document.getElementById('huerfano_nombre').value,
-                descripcion_muestra: document.getElementById('huerfano_desc').value,
+                nombre_etiqueta_manual: codigoIngresado,
+                descripcion_muestra: quePaso,
                 quien_entrego: document.getElementById('huerfano_entrego').value,
                 detectado_por: operador
             }]);
 
             if (error) return alert('Error: ' + error.message);
+
+            const codigoFrasco = extraerCodigoFrasco(codigoIngresado);
+            if (codigoFrasco) {
+                await db
+                    .from('frascos_muestra')
+                    .update({
+                        estado: 'PENDIENTE_REGULARIZAR',
+                        escaneado_por: operador
+                    })
+                    .eq('codigo_frasco', codigoFrasco);
+            }
+
             alert('🚨 Incidencia registrada. Gerencia ha sido alertada.');
             document.getElementById('form-huerfano').reset();
+            refrescarAreasActivas();
         });
 
         async function cargarAuditoria() {
@@ -965,7 +1014,9 @@
 
             const totalReg = frascos?.length || 0;
             const totalEsc = frascos?.filter(f => f.estado === 'ESCANEADO_MACROSCOPIA').length || 0;
-            const totalHuerf = incidencias?.filter(i => i.estado_auditoria === 'PENDIENTE_REGULARIZAR').length || 0;
+            const frascosPendReg = frascos?.filter(f => f.estado === 'PENDIENTE_REGULARIZAR').length || 0;
+            const huerfPendReg = incidencias?.filter(i => i.estado_auditoria === 'PENDIENTE_REGULARIZAR').length || 0;
+            const totalHuerf = huerfPendReg + frascosPendReg;
             
             const dineroCaja = (ordenes || []).reduce((acc, o) => acc + Number(o.monto_cobrado), 0);
             const dineroRegularizado = (incidencias || [])
@@ -992,7 +1043,7 @@
                 return `
                 <tr class="${esPendiente ? 'bg-red-50/40' : ''}">
                     <td class="p-3 text-xs">${new Date(inc.fecha_deteccion).toLocaleString()}</td>
-                    <td class="p-3 font-bold">${inc.nombre_etiqueta_manual}</td>
+                    <td class="p-3 font-mono font-bold">${inc.nombre_etiqueta_manual}</td>
                     <td class="p-3">${inc.descripcion_muestra}</td>
                     <td class="p-3">${inc.quien_entrego || 'No especificado'}</td>
                     <td class="p-3">
@@ -1022,20 +1073,47 @@
 
             const comp = prompt('Ingrese el N° de Boleta / Comprobante emitido:') || 'S/N';
 
+            const { data: inc } = await db
+                .from('incidencias_huerfanos')
+                .select('nombre_etiqueta_manual, descripcion_muestra')
+                .eq('id', id)
+                .single();
+
             await db.from('incidencias_huerfanos').update({
                 estado_auditoria: 'REGULARIZADO_PAGO',
                 monto_regularizado: monto,
                 comprobante_regularizacion: comp
             }).eq('id', id);
+
+            await marcarFrascoComoRegularizadoEscaneado(
+                `${inc?.nombre_etiqueta_manual || ''} ${inc?.descripcion_muestra || ''}`,
+                document.getElementById('info-usuario')?.innerText || 'Gerencia'
+            );
+
+            refrescarAreasActivas();
         }
 
         async function marcarComoError(id) {
             const nota = prompt('Motivo del error (Ej: Duplicado de orden B001-452, frasco de revisión sin costo):') || 'Error operativo confirmado';
+
+            const { data: inc } = await db
+                .from('incidencias_huerfanos')
+                .select('nombre_etiqueta_manual, descripcion_muestra')
+                .eq('id', id)
+                .single();
+
             await db.from('incidencias_huerfanos').update({
                 estado_auditoria: 'ERROR_REGISTRO_CONFIRMADO',
                 monto_regularizado: 0,
                 notas_gerencia: nota
             }).eq('id', id);
+
+            await marcarFrascoComoRegularizadoEscaneado(
+                `${inc?.nombre_etiqueta_manual || ''} ${inc?.descripcion_muestra || ''}`,
+                document.getElementById('info-usuario')?.innerText || 'Gerencia'
+            );
+
+            refrescarAreasActivas();
         }
     </script>
 </body>
