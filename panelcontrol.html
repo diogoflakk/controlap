@@ -264,12 +264,12 @@
                 <div id="panel-clave-cortesia" class="bg-amber-50 border border-amber-300 rounded-xl p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3 shadow-sm">
                     <div class="space-y-0.5">
                         <div class="text-xs font-bold uppercase text-amber-900">🔐 Clave Variable Vigente de Cortesía</div>
-                        <p id="vigencia-clave-cortesia" class="text-[11px] text-amber-800">Válida para el bloque horario actual</p>
+                        <p id="vigencia-clave-cortesia" class="text-[11px] text-amber-800">Sincronizada en tiempo real • Formato ABC-1234</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span id="valor-clave-cortesia" class="font-mono text-sm sm:text-base font-black bg-white border border-amber-400 text-slate-900 px-3 py-1 rounded-lg">CRT-000000</span>
+                        <span id="valor-clave-cortesia" class="font-mono text-sm sm:text-base font-black bg-white border border-amber-400 text-slate-900 px-3 py-1 rounded-lg">ABC-0000</span>
                         <button type="button" onclick="copiarClaveCortesia()" class="bg-amber-700 hover:bg-amber-800 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition">Copiar</button>
-                        <button type="button" onclick="actualizarClaveCortesiaPanel()" class="bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition">Actualizar</button>
+                        <button type="button" id="btn-actualizar-clave-cortesia" onclick="actualizarClaveCortesiaPanel(true)" class="bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition">Actualizar</button>
                     </div>
                 </div>
 
@@ -364,48 +364,161 @@
             GERENCIA: ['auditoria', 'macroscopia']
         };
 
+        const STORAGE_CLAVE_CORTESIA = 'patologiacontrol_clave_cortesia_activa';
+
         let rolActual = null;
         let pestanasPermitidas = [];
         let canalRealtime = null;
         let toastTimeout = null;
         let html5QrCode = null;
         let camaraActiva = false;
+        let contextoReporteFrasco = null;
+        let claveCortesiaActiva = null;
+        let claveActualizadaEn = null;
 
-        function obtenerClaveCortesiaVigente(fecha = new Date()) {
-            const yyyy = fecha.getFullYear();
-            const mm = String(fecha.getMonth() + 1).padStart(2, '0');
-            const dd = String(fecha.getDate()).padStart(2, '0');
-            const bloqueHorario = String(Math.floor(fecha.getHours() / 2)).padStart(2, '0');
-            const semilla = `${yyyy}${mm}${dd}${bloqueHorario}`;
-            let hash = 2166136261;
-            for (let i = 0; i < semilla.length; i++) {
-                hash ^= semilla.charCodeAt(i);
-                hash = Math.imul(hash, 16777619);
-            }
-            const codigoNumerico = String(Math.abs(hash) % 900000 + 100000);
-            return `CRT-${codigoNumerico}`;
+        function esFormatoClaveCortesiaValido(clave) {
+            return /^[A-Z]{3}-\d{4}$/.test(String(clave || '').trim().toUpperCase());
         }
 
-        function actualizarClaveCortesiaPanel(fecha = new Date()) {
+        function generarClaveCortesiaAleatoria() {
+            const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            let prefijo = '';
+            for (let i = 0; i < 3; i++) {
+                const idx = Math.floor(Math.random() * letras.length);
+                prefijo += letras[idx];
+            }
+            const numero = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+            return `${prefijo}-${numero}`;
+        }
+
+        function guardarClaveLocal(clave, fechaIso = new Date().toISOString()) {
+            const limpia = String(clave || '').trim().toUpperCase();
+            if (!esFormatoClaveCortesiaValido(limpia)) return;
+            claveCortesiaActiva = limpia;
+            claveActualizadaEn = fechaIso;
+            try {
+                localStorage.setItem(STORAGE_CLAVE_CORTESIA, limpia);
+            } catch (_) {}
+        }
+
+        function renderizarClaveCortesiaUI() {
             const claveEl = document.getElementById('valor-clave-cortesia');
             const vigenciaEl = document.getElementById('vigencia-clave-cortesia');
             const panelEl = document.getElementById('panel-clave-cortesia');
+            const btnActualizar = document.getElementById('btn-actualizar-clave-cortesia');
             if (!claveEl || !vigenciaEl) return;
 
             const puedeVer = rolActual === 'GERENCIA' || rolActual === 'AUDITORIA';
             if (panelEl) {
                 panelEl.classList.toggle('hidden', !puedeVer);
             }
+            if (btnActualizar) {
+                btnActualizar.classList.toggle('hidden', !puedeVer);
+            }
             if (!puedeVer) return;
 
-            const inicioBloque = Math.floor(fecha.getHours() / 2) * 2;
-            const finBloque = inicioBloque + 2;
-            claveEl.innerText = obtenerClaveCortesiaVigente(fecha);
-            vigenciaEl.innerText = `Válida hoy de ${String(inicioBloque).padStart(2, '0')}:00 a ${String(finBloque).padStart(2, '0')}:00`;
+            const claveMostrada = claveCortesiaActiva || obtenerClaveCortesiaVigente();
+            claveEl.innerText = claveMostrada;
+
+            const fechaRef = claveActualizadaEn ? new Date(claveActualizadaEn) : new Date();
+            const horaTexto = Number.isNaN(fechaRef.getTime())
+                ? ''
+                : fechaRef.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            vigenciaEl.innerText = horaTexto
+                ? `Sincronizada en tiempo real • Actualizada a las ${horaTexto} • Formato ABC-1234`
+                : 'Sincronizada en tiempo real • Formato ABC-1234';
+        }
+
+        async function sincronizarClaveCortesiaDesdeDB() {
+            const { data, error } = await db
+                .from('configuracion_cortesia')
+                .select('clave_activa, actualizada_en')
+                .eq('id', 1)
+                .single();
+
+            if (!error && data && esFormatoClaveCortesiaValido(data.clave_activa)) {
+                guardarClaveLocal(data.clave_activa.trim().toUpperCase(), data.actualizada_en || new Date().toISOString());
+                renderizarClaveCortesiaUI();
+                return claveCortesiaActiva;
+            }
+
+            if (!claveCortesiaActiva) {
+                let guardada = null;
+                try {
+                    guardada = localStorage.getItem(STORAGE_CLAVE_CORTESIA);
+                } catch (_) {}
+
+                if (esFormatoClaveCortesiaValido(guardada)) {
+                    guardarClaveLocal(guardada.trim().toUpperCase());
+                } else {
+                    guardarClaveLocal(generarClaveCortesiaAleatoria());
+                }
+            }
+            renderizarClaveCortesiaUI();
+            return claveCortesiaActiva;
+        }
+
+        function obtenerClaveCortesiaVigente() {
+            if (!claveCortesiaActiva) {
+                let guardada = null;
+                try {
+                    guardada = localStorage.getItem(STORAGE_CLAVE_CORTESIA);
+                } catch (_) {}
+
+                if (esFormatoClaveCortesiaValido(guardada)) {
+                    guardarClaveLocal(guardada.trim().toUpperCase());
+                } else {
+                    guardarClaveLocal(generarClaveCortesiaAleatoria());
+                }
+            }
+            return claveCortesiaActiva;
+        }
+
+        async function actualizarClaveCortesiaPanel(forzarNueva = false) {
+            if (!forzarNueva) {
+                await sincronizarClaveCortesiaDesdeDB();
+                return;
+            }
+
+            const puedeGenerar = rolActual === 'GERENCIA' || rolActual === 'AUDITORIA';
+            if (!puedeGenerar) {
+                await sincronizarClaveCortesiaDesdeDB();
+                return;
+            }
+
+            let nuevaClave = generarClaveCortesiaAleatoria();
+            if (nuevaClave === claveCortesiaActiva) {
+                nuevaClave = generarClaveCortesiaAleatoria();
+            }
+
+            const ahoraIso = new Date().toISOString();
+            const usuarioNombre = document.getElementById('info-usuario')?.innerText?.trim() || rolActual || 'Gerencia';
+
+            const { data, error } = await db
+                .from('configuracion_cortesia')
+                .upsert([{
+                    id: 1,
+                    clave_activa: nuevaClave,
+                    actualizada_en: ahoraIso,
+                    actualizada_por: usuarioNombre
+                }], { onConflict: 'id' })
+                .select('clave_activa, actualizada_en')
+                .single();
+
+            if (error) {
+                guardarClaveLocal(nuevaClave, ahoraIso);
+                renderizarClaveCortesiaUI();
+                mostrarToast(`⚠️ Clave actualizada localmente (${nuevaClave}). Verifique tabla configuracion_cortesia en Supabase.`);
+                return;
+            }
+
+            guardarClaveLocal(data.clave_activa, data.actualizada_en || ahoraIso);
+            renderizarClaveCortesiaUI();
+            mostrarToast(`🔐 Nueva clave de cortesía sincronizada: ${claveCortesiaActiva}`);
         }
 
         async function copiarClaveCortesia() {
-            const clave = document.getElementById('valor-clave-cortesia')?.innerText?.trim();
+            const clave = document.getElementById('valor-clave-cortesia')?.innerText?.trim() || obtenerClaveCortesiaVigente();
             if (!clave) return;
             try {
                 await navigator.clipboard.writeText(clave);
@@ -446,6 +559,31 @@
             return match ? match[0] : null;
         }
 
+        function obtenerNumeroFrasco(codigoFrasco) {
+            const match = String(codigoFrasco || '').toUpperCase().match(/-F(\d+)$/);
+            return match ? parseInt(match[1], 10) : null;
+        }
+
+        function construirDescripcionIncidencia(motivo, datosFrasco = null) {
+            const motivoLimpio = String(motivo || '').trim().toUpperCase();
+            if (!datosFrasco) return motivoLimpio;
+
+            const paciente = String(datosFrasco.pacienteNombre || '').trim();
+            const muestra = String(datosFrasco.muestra || '').trim();
+            const totalFrascos = Number(datosFrasco.totalFrascos || 1);
+            const numFrasco = datosFrasco.numFrasco;
+
+            const partes = [];
+            if (paciente) partes.push(paciente);
+            if (muestra) partes.push(muestra);
+            if (totalFrascos > 1 && numFrasco) {
+                partes.push(`Fco - ${numFrasco}`);
+            }
+
+            if (partes.length === 0) return motivoLimpio;
+            return `${motivoLimpio} (${partes.join(' - ')})`;
+        }
+
         async function marcarFrascoComoRegularizadoEscaneado(textoConCodigo, operador = 'Gerencia') {
             const codigoFrasco = extraerCodigoFrasco(textoConCodigo);
             if (!codigoFrasco) return;
@@ -477,7 +615,18 @@
             }
 
             canalRealtime = db
-                .channel('patologia-realtime-sync-v5')
+                .channel('patologia-realtime-sync-v6')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'configuracion_cortesia' }, (payload) => {
+                    const nuevaClave = payload.new?.clave_activa;
+                    if (esFormatoClaveCortesiaValido(nuevaClave)) {
+                        const cambioReal = nuevaClave.trim().toUpperCase() !== claveCortesiaActiva;
+                        guardarClaveLocal(nuevaClave.trim().toUpperCase(), payload.new?.actualizada_en || new Date().toISOString());
+                        renderizarClaveCortesiaUI();
+                        if (cambioReal && (rolActual === 'GERENCIA' || rolActual === 'AUDITORIA')) {
+                            mostrarToast(`🔐 Clave de cortesía sincronizada: ${claveCortesiaActiva}`);
+                        }
+                    }
+                })
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'ordenes_patologia' }, (payload) => {
                     if (payload.eventType === 'INSERT') {
                         mostrarToast(`📥 Nueva orden registrada: ${payload.new.codigo_orden || ''}`);
@@ -521,7 +670,7 @@
                 cargarPendientesMacro();
             }
             if (pestanasPermitidas.includes('auditoria')) {
-                actualizarClaveCortesiaPanel();
+                sincronizarClaveCortesiaDesdeDB();
                 cargarAuditoria();
                 cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia');
             }
@@ -561,7 +710,7 @@
                 }
             });
 
-            actualizarClaveCortesiaPanel();
+            await sincronizarClaveCortesiaDesdeDB();
             iniciarRealtime();
             refrescarAreasActivas();
 
@@ -613,7 +762,7 @@
                 cargarPendientesMacro();
             }
             if (tab === 'auditoria') {
-                actualizarClaveCortesiaPanel();
+                await sincronizarClaveCortesiaDesdeDB();
                 cargarAuditoria();
                 cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia');
             }
@@ -660,7 +809,7 @@
                         </div>
                         <div id="wrap_clave_cortesia_${i}" class="hidden bg-amber-50 border border-amber-300 rounded-md p-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <label for="clave_cortesia_${i}" class="text-xs font-bold text-amber-900">🔐 Clave variable de cortesía (Frasco ${i}):</label>
-                            <input type="password" id="clave_cortesia_${i}" name="clave_cortesia[]" class="border border-amber-400 rounded-md px-2.5 py-1.5 text-xs font-mono uppercase w-full sm:w-48" placeholder="Ej: CRT-123456">
+                            <input type="password" id="clave_cortesia_${i}" name="clave_cortesia[]" class="border border-amber-400 rounded-md px-2.5 py-1.5 text-xs font-mono uppercase w-full sm:w-48" placeholder="Ej: ABC-1234">
                         </div>
                     </div>
                 `;
@@ -789,14 +938,16 @@
             const estadosPago = Array.from(document.getElementsByName('estado_pago_frasco[]')).map(i => i.value);
             const montosFrasco = Array.from(document.getElementsByName('monto_frasco[]')).map(i => parseFloat(i.value) || 0);
             const clavesCortesia = Array.from(document.getElementsByName('clave_cortesia[]')).map(i => i.value.trim().toUpperCase());
-            const claveVigente = obtenerClaveCortesiaVigente();
+
+            const requiereCortesia = estadosPago.some(est => est === 'CORTESIA_AUTORIZADA');
+            const claveVigente = requiereCortesia ? await sincronizarClaveCortesiaDesdeDB() : obtenerClaveCortesiaVigente();
 
             for (let i = 0; i < cant; i++) {
                 if (estadosPago[i] === 'PAGADO' && montosFrasco[i] <= 0) {
                     return alert(`⚠️ Error en Frasco ${i + 1}: Está marcado como "Pagado Individual" pero tiene monto S/ 0.00.`);
                 }
                 if (estadosPago[i] === 'CORTESIA_AUTORIZADA' && clavesCortesia[i] !== claveVigente) {
-                    return alert(`🔐 Clave de cortesía incorrecta en Frasco ${i + 1}. Solicite la clave variable vigente del turno.`);
+                    return alert(`🔐 Clave de cortesía incorrecta en Frasco ${i + 1}. Solicite la clave vigente actual.`);
                 }
             }
 
@@ -1064,9 +1215,27 @@
             document.getElementById('input-escaneo').value = '';
         }
 
-        function enfocarReporteHuerfano(codigoFrasco) {
+        async function enfocarReporteHuerfano(codigoFrasco) {
             const inputCodigo = document.getElementById('huerfano_nombre');
             const panelReporte = document.getElementById('panel-reporte-huerfano');
+            contextoReporteFrasco = null;
+
+            const { data: frasco } = await db
+                .from('frascos_muestra')
+                .select('codigo_frasco, descripcion_anatomica, ordenes_patologia(paciente_nombre, cantidad_frascos_declarados)')
+                .eq('codigo_frasco', codigoFrasco)
+                .single();
+
+            if (frasco) {
+                contextoReporteFrasco = {
+                    codigoFrasco: frasco.codigo_frasco,
+                    pacienteNombre: frasco.ordenes_patologia?.paciente_nombre || '',
+                    muestra: frasco.descripcion_anatomica || '',
+                    totalFrascos: Number(frasco.ordenes_patologia?.cantidad_frascos_declarados || 1),
+                    numFrasco: obtenerNumeroFrasco(frasco.codigo_frasco)
+                };
+            }
+
             if (inputCodigo) {
                 inputCodigo.value = codigoFrasco;
             }
@@ -1112,22 +1281,51 @@
             }).join('');
         }
 
+        document.getElementById('huerfano_nombre').addEventListener('input', () => {
+            const actual = document.getElementById('huerfano_nombre').value.trim().toUpperCase();
+            if (contextoReporteFrasco && actual !== contextoReporteFrasco.codigoFrasco) {
+                contextoReporteFrasco = null;
+            }
+        });
+
         document.getElementById('form-huerfano').addEventListener('submit', async (e) => {
             e.preventDefault();
             const operador = document.getElementById('operador_macro').value.trim() || 'Turno Macroscopía';
             const codigoIngresado = document.getElementById('huerfano_nombre').value.trim().toUpperCase();
             const quePaso = document.getElementById('huerfano_desc').value;
 
+            let datosParaFormato = contextoReporteFrasco;
+            const codigoFrasco = extraerCodigoFrasco(codigoIngresado);
+
+            if (!datosParaFormato && codigoFrasco) {
+                const { data: frascoMatch } = await db
+                    .from('frascos_muestra')
+                    .select('codigo_frasco, descripcion_anatomica, ordenes_patologia(paciente_nombre, cantidad_frascos_declarados)')
+                    .eq('codigo_frasco', codigoFrasco)
+                    .single();
+
+                if (frascoMatch) {
+                    datosParaFormato = {
+                        codigoFrasco: frascoMatch.codigo_frasco,
+                        pacienteNombre: frascoMatch.ordenes_patologia?.paciente_nombre || '',
+                        muestra: frascoMatch.descripcion_anatomica || '',
+                        totalFrascos: Number(frascoMatch.ordenes_patologia?.cantidad_frascos_declarados || 1),
+                        numFrasco: obtenerNumeroFrasco(frascoMatch.codigo_frasco)
+                    };
+                }
+            }
+
+            const descripcionFormateada = construirDescripcionIncidencia(quePaso, datosParaFormato);
+
             const { error } = await db.from('incidencias_huerfanos').insert([{
                 nombre_etiqueta_manual: codigoIngresado,
-                descripcion_muestra: quePaso,
+                descripcion_muestra: descripcionFormateada,
                 quien_entrego: document.getElementById('huerfano_entrego').value,
                 detectado_por: operador
             }]);
 
             if (error) return alert('Error: ' + error.message);
 
-            const codigoFrasco = extraerCodigoFrasco(codigoIngresado);
             if (codigoFrasco) {
                 const { error: errUpdateFrasco } = await db
                     .from('frascos_muestra')
@@ -1142,6 +1340,7 @@
                 }
             }
 
+            contextoReporteFrasco = null;
             alert('🚨 Incidencia registrada y frasco marcado como PENDIENTE - REGULARIZAR.');
             document.getElementById('form-huerfano').reset();
             refrescarAreasActivas();
