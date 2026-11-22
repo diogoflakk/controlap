@@ -876,25 +876,23 @@
                     await escanearFrasco();
                 };
 
-                try {
-                    await html5QrCode.start(
-                        {
-                            facingMode: 'environment',
-                            width: { ideal: 1280 },
-                            height: { ideal: 720 }
-                        },
-                        config,
-                        onScanSuccess,
-                        () => {}
-                    );
-                } catch (_) {
-                    await html5QrCode.start({ facingMode: 'user' }, config, onScanSuccess, () => {});
+                let cameraIdOrConfig = { facingMode: 'environment' };
+                if (typeof Html5Qrcode.getCameras === 'function') {
+                    const cameras = await Html5Qrcode.getCameras();
+                    if (!cameras || cameras.length === 0) {
+                        throw new Error('No se detectó ninguna cámara conectada en este dispositivo.');
+                    }
+                    const trasera = cameras.find(c => /back|rear|environment|trasera/i.test(c.label));
+                    cameraIdOrConfig = trasera ? trasera.id : cameras[0].id;
                 }
+
+                await html5QrCode.start(cameraIdOrConfig, config, onScanSuccess, () => {});
 
                 camaraActiva = true;
                 estadoEl.innerText = 'Cámara activa: alinee el código de barras completo (con márgenes blancos) dentro del recuadro.';
             } catch (err) {
-                estadoEl.innerText = 'No se pudo acceder a la cámara. Verifique permisos o use HTTPS/localhost.';
+                const detalle = err?.message ? ` (${err.message})` : '';
+                estadoEl.innerText = `No se pudo iniciar la cámara${detalle}. Verifique permisos o use HTTPS/localhost.`;
                 camaraActiva = false;
             }
         }
