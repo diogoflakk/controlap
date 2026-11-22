@@ -35,8 +35,10 @@
         <nav class="bg-slate-900 text-white px-6 py-3 shadow-sm border-b border-slate-800 flex flex-wrap justify-between items-center gap-4">
             <div class="flex items-center gap-6">
                 <div class="flex items-center space-x-3">
-                    <img src="logo.png" alt="Logo PatologíaControl" class="h-11 w-auto max-w-[140px] object-contain">
-                    <span class="text-lg font-bold tracking-tight">Patología<span style="color: #990820;">Control</span></span>
+                    <div class="bg-white px-2.5 py-1 rounded-lg shadow-sm flex items-center justify-center">
+                        <img src="logo.png" alt="Logo PatologíaControl" class="h-10 w-auto max-w-[140px] object-contain">
+                    </div>
+                    <span class="text-lg font-bold tracking-tight">Patología<span style="color: #f87171;">Control</span></span>
                     <span id="badge-realtime" class="flex items-center gap-1.5 text-[11px] font-mono bg-slate-800 border border-slate-700 px-2.5 py-0.5 rounded-full text-slate-300">
                         <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
                         CONECTANDO...
@@ -51,9 +53,9 @@
             </div>
 
             <div class="flex items-center space-x-3 text-xs">
-                <div class="text-right leading-tight">
+                <div class="text-right leading-tight flex flex-col items-end gap-1">
                     <div id="info-usuario" class="font-semibold text-white">Usuario</div>
-                    <div id="info-rol" class="font-mono text-[10px] uppercase" style="color: #990820;">ROL</div>
+                    <span id="info-rol" class="font-mono text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-950">ROL</span>
                 </div>
                 <button onclick="cerrarSesion()" class="bg-slate-800 hover:bg-red-600 text-slate-200 hover:text-white border border-slate-700 px-3 py-1.5 rounded-md font-medium transition">
                     Salir
@@ -110,7 +112,7 @@
 
                             <div class="flex justify-between items-center bg-slate-900 text-white px-4 py-3 rounded-lg">
                                 <span class="text-xs uppercase font-bold text-slate-300">Total Boleta (Suma de frascos):</span>
-                                <span id="total-orden-preview" class="text-xl font-black" style="color: #990820;">S/ 0.00</span>
+                                <span id="total-orden-preview" class="text-xl font-black" style="color: #f87171;">S/ 0.00</span>
                             </div>
 
                             <div class="flex justify-between items-center pt-2">
@@ -218,24 +220,24 @@
                 <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                     <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                         <span class="text-[11px] font-bold text-slate-400 uppercase">Frascos Registrados</span>
-                        <p id="kpi-registrados" class="text-2xl font-black text-slate-800 mt-1">0</p>
+                        <p id="kpi-registrados" class="text-2xl font-black mt-1" style="color: #000000;">0</p>
                     </div>
                     <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                         <span class="text-[11px] font-bold text-slate-400 uppercase">Escaneados Macro</span>
-                        <p id="kpi-escaneados" class="text-2xl font-black text-blue-600 mt-1">0</p>
+                        <p id="kpi-escaneados" class="text-2xl font-black mt-1" style="color: #1e3a8a;">0</p>
                     </div>
                     <div class="bg-white p-4 rounded-xl border-2 border-red-200 shadow-sm">
                         <span class="text-[11px] font-bold text-red-500 uppercase">Huérfanos Pendientes</span>
-                        <p id="kpi-huerfanos" class="text-2xl font-black text-red-600 mt-1">0</p>
+                        <p id="kpi-huerfanos" class="text-2xl font-black mt-1" style="color: #990820;">0</p>
                     </div>
                     <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
                         <span class="text-[11px] font-bold text-slate-400 uppercase">Caja Inicial</span>
                         <p id="kpi-dinero-caja" class="text-2xl font-black text-slate-700 mt-1">S/ 0.00</p>
                     </div>
-                    <div class="p-4 rounded-xl border-2 shadow-sm" style="background-color: rgba(153, 8, 32, 0.06); border-color: rgba(153, 8, 32, 0.35);">
-                        <span class="text-[11px] font-bold uppercase" style="color: #990820;">Total Auditado Real</span>
-                        <p id="kpi-dinero-total" class="text-2xl font-black mt-1" style="color: #990820;">S/ 0.00</p>
-                        <span id="kpi-regularizado-detalle" class="text-[10px] font-semibold" style="color: #990820;">+ S/ 0.00 regularizado</span>
+                    <div class="p-4 rounded-xl border-2 border-emerald-300 shadow-sm" style="background-color: rgba(21, 128, 61, 0.07);">
+                        <span class="text-[11px] font-bold uppercase text-emerald-800">Total Auditado Real</span>
+                        <p id="kpi-dinero-total" class="text-2xl font-black mt-1 text-emerald-700">S/ 0.00</p>
+                        <span id="kpi-regularizado-detalle" class="text-[10px] font-semibold text-emerald-700">+ S/ 0.00 regularizado</span>
                     </div>
                 </div>
 
@@ -244,7 +246,7 @@
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse text-sm">
                             <thead>
-                                <tr class="bg-red-50 text-red-900 border-b border-red-200">
+                                <tr class="bg-red-50 text-black border-b border-red-200">
                                     <th class="p-3">Fecha / Hora</th>
                                     <th class="p-3">Rotulado Manual</th>
                                     <th class="p-3">Descripción</th>
@@ -656,28 +658,36 @@
 
             const tbody = document.getElementById('tabla-incidencias');
             if (!tbody) return;
-            tbody.innerHTML = (incidencias || []).map(inc => `
-                <tr class="${inc.estado_auditoria === 'PENDIENTE_REGULARIZAR' ? 'bg-red-50/40' : ''}">
+            tbody.innerHTML = (incidencias || []).map(inc => {
+                const esRegularizado = inc.estado_auditoria === 'REGULARIZADO_PAGO';
+                const esPendiente = inc.estado_auditoria === 'PENDIENTE_REGULARIZAR';
+                const badgeClass = esPendiente
+                    ? 'bg-red-100 text-red-700'
+                    : (esRegularizado ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700');
+
+                return `
+                <tr class="${esPendiente ? 'bg-red-50/40' : ''}">
                     <td class="p-3 text-xs">${new Date(inc.fecha_deteccion).toLocaleString()}</td>
                     <td class="p-3 font-bold">${inc.nombre_etiqueta_manual}</td>
                     <td class="p-3">${inc.descripcion_muestra}</td>
                     <td class="p-3">${inc.quien_entrego || 'No especificado'}</td>
                     <td class="p-3">
-                        <span class="px-2.5 py-1 rounded-md text-xs font-bold ${inc.estado_auditoria === 'PENDIENTE_REGULARIZAR' ? 'bg-red-100 text-red-700' : (inc.estado_auditoria === 'REGULARIZADO_PAGO' ? 'text-white' : 'bg-slate-200 text-slate-700')}" style="${inc.estado_auditoria === 'REGULARIZADO_PAGO' ? 'background-color: #990820;' : ''}">
+                        <span class="px-2.5 py-1 rounded-md text-xs font-bold ${badgeClass}">
                             ${formatearEtiqueta(inc.estado_auditoria)}
                         </span>
                     </td>
                     <td class="p-3 font-mono font-bold text-xs">
-                        ${inc.estado_auditoria === 'REGULARIZADO_PAGO' ? `S/ ${Number(inc.monto_regularizado || 0).toFixed(2)} (${inc.comprobante_regularizacion || '-'})` : 'S/ 0.00'}
+                        ${esRegularizado ? `S/ ${Number(inc.monto_regularizado || 0).toFixed(2)} (${inc.comprobante_regularizacion || '-'})` : 'S/ 0.00'}
                     </td>
                     <td class="p-3">
-                        ${inc.estado_auditoria === 'PENDIENTE_REGULARIZAR' ? `
+                        ${esPendiente ? `
                             <button onclick="regularizarConPago('${inc.id}')" class="text-xs text-white px-2.5 py-1 rounded-md mr-1" style="background-color: #990820;">Regularizó Pago</button>
                             <button onclick="marcarComoError('${inc.id}')" class="text-xs bg-slate-600 text-white px-2.5 py-1 rounded-md">Fue Error</button>
                         ` : 'Cerrado'}
                     </td>
                 </tr>
-            `).join('');
+            `;
+            }).join('');
         }
 
         async function regularizarConPago(id) {
