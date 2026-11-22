@@ -18,10 +18,9 @@
 
     <div class="min-h-screen flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md p-8 rounded-2xl shadow-md border border-slate-200">
-            <!-- Logo grande arriba y PatologíaControl debajo -->
             <div class="flex flex-col items-center justify-center text-center mb-6">
                 <img src="logo.png" alt="Logo PatologíaControl" class="h-24 w-auto max-w-[260px] object-contain mb-2">
-                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Patología<span class="text-red-400">Control</span></h1>
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Patología<span class="text-red-700">Control</span></h1>
             </div>
 
             <h2 class="text-lg font-bold text-slate-800 mb-1">Iniciar Sesión</h2>
@@ -61,7 +60,7 @@
                 throw new Error('Tu usuario no tiene un rol asignado en perfiles_usuario.');
             }
 
-            window.location.href = 'panelcontrol.html';
+            window.location.replace('panelcontrol.html');
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
@@ -70,7 +69,7 @@
                 try {
                     await validarPerfilYEntrar(session.user);
                 } catch (_) {
-                    // Si no tiene perfil válido, permanece en login.html
+                    // Permanece en login.html si no tiene perfil válido
                 }
             }
         });
