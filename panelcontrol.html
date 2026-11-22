@@ -8,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         @media print {
             body * { visibility: hidden; }
@@ -98,7 +99,7 @@
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Cantidad de Frascos *</label>
-                                    <input type="number" id="cantidad_frascos" min="1" max="15" value="1" required onchange="generarInputsFrascos()" class="w-full rounded-lg p-2.5 text-sm font-bold" style="border: 2px solid #990820;">
+                                    <input type="number" id="cantidad_frascos" min="1" max="15" value="1" required onchange="generarInputsFrascos()" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm font-bold">
                                 </div>
                             </div>
 
@@ -107,7 +108,7 @@
                                 <input type="text" id="medico_remitente" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" placeholder="Dr. Carlos Mendoza">
                             </div>
 
-                            <div id="contenedor-frascos" class="space-y-3 p-4 rounded-lg" style="background-color: rgba(153, 8, 32, 0.05); border: 1px solid rgba(153, 8, 32, 0.25);"></div>
+                            <div id="contenedor-frascos" class="space-y-3 bg-slate-50 p-4 rounded-lg border border-slate-200"></div>
 
                             <div class="flex justify-between items-center bg-slate-900 text-white px-4 py-3 rounded-lg">
                                 <span class="text-xs uppercase font-bold text-slate-300">Total Boleta (Suma de frascos):</span>
@@ -449,11 +450,11 @@
         function generarInputsFrascos() {
             const cant = parseInt(document.getElementById('cantidad_frascos').value) || 1;
             const contenedor = document.getElementById('contenedor-frascos');
-            contenedor.innerHTML = `<label class="block text-xs font-bold uppercase" style="color: #990820;">Desglose obligatorio por frasco (${cant} etiquetas):</label>`;
+            contenedor.innerHTML = `<label class="block text-xs font-bold uppercase text-slate-700">Desglose obligatorio por frasco (${cant} etiquetas):</label>`;
             
             for (let i = 1; i <= cant; i++) {
                 contenedor.innerHTML += `
-                    <div class="grid grid-cols-1 md:grid-cols-12 gap-2 bg-white p-2.5 rounded-lg items-center" style="border: 1px solid rgba(153, 8, 32, 0.25);">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-2 bg-white p-2.5 rounded-lg border border-slate-200 items-center">
                         <div class="md:col-span-5">
                             <input type="text" name="desc_frasco[]" required class="w-full border border-slate-300 rounded-md p-2 text-sm" placeholder="Frasco ${i}: Muestra anatómica">
                         </div>
@@ -535,18 +536,33 @@
 
             const areaImpresion = document.getElementById('area-impresion');
             areaImpresion.innerHTML = frascosCreados.map((f, i) => `
-                <div class="border-2 border-slate-900 p-3 rounded-lg bg-white text-xs font-mono">
-                    <div class="flex justify-between font-bold border-b border-slate-300 pb-1 mb-1">
-                        <span>${f.codigo_frasco}</span>
-                        <span>FRASCO ${i + 1}/${cant}</span>
+                <div class="border-2 border-slate-900 p-3 rounded-lg bg-white text-xs font-mono flex items-center justify-between gap-3">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex justify-between font-bold border-b border-slate-300 pb-1 mb-1">
+                            <span>${f.codigo_frasco}</span>
+                            <span>FRASCO ${i + 1}/${cant}</span>
+                        </div>
+                        <p class="font-bold text-sm uppercase truncate">${orden.paciente_nombre}</p>
+                        <p class="text-slate-700 truncate">${f.descripcion_anatomica}</p>
+                        <p class="text-[10px] font-bold mt-1 text-emerald-700">
+                            ${formatearEtiqueta(f.estado_pago_frasco)} | Comp: ${orden.numero_comprobante}
+                        </p>
                     </div>
-                    <p class="font-bold text-sm uppercase">${orden.paciente_nombre}</p>
-                    <p class="text-slate-700">${f.descripcion_anatomica}</p>
-                    <p class="text-[10px] font-bold mt-1" style="color: ${f.estado_pago_frasco === 'PAGADO' ? '#990820' : '#b45309'};">
-                        ${formatearEtiqueta(f.estado_pago_frasco)} (S/ ${Number(f.monto_frasco).toFixed(2)}) | Comp: ${orden.numero_comprobante}
-                    </p>
+                    <div id="qr-frasco-${i}" class="shrink-0 bg-white p-1 border border-slate-200 rounded"></div>
                 </div>
             `).join('');
+
+            frascosCreados.forEach((f, i) => {
+                const qrContainer = document.getElementById(`qr-frasco-${i}`);
+                if (qrContainer && window.QRCode) {
+                    new QRCode(qrContainer, {
+                        text: f.codigo_frasco,
+                        width: 64,
+                        height: 64,
+                        correctLevel: QRCode.CorrectLevel.M
+                    });
+                }
+            });
 
             document.getElementById('btn-imprimir').classList.remove('hidden');
             document.getElementById('form-recepcion').reset();
