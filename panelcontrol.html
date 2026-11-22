@@ -117,7 +117,7 @@
 
                             <div class="flex justify-between items-center pt-2">
                                 <input type="text" id="usuario_recepcion" required class="border border-slate-300 rounded-lg p-2 text-sm w-52" placeholder="Tu nombre (Recepción)">
-                                <button type="submit" class="hover:opacity-90 text-white font-semibold px-6 py-2.5 rounded-lg shadow-sm transition" style="background-color: #990820;">
+                                <button type="submit" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-400 font-semibold px-6 py-2.5 rounded-lg shadow-sm transition">
                                     Registrar y Generar Etiquetas
                                 </button>
                             </div>
@@ -127,10 +127,19 @@
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
                         <div>
                             <h3 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Etiquetas de Trazabilidad</h3>
-                            <p class="text-xs text-slate-500 mb-4">Cada etiqueta muestra si el frasco fue pagado individualmente o incluido en paquete.</p>
+                            <p class="text-xs text-slate-500 mb-3">Cada etiqueta muestra si el frasco fue pagado individualmente o incluido en paquete.</p>
+
+                            <!-- Buscador para reimprimir etiquetas ya registradas -->
+                            <div class="flex gap-2 mb-4">
+                                <input type="text" id="buscar-etiqueta" onkeydown="if(event.key==='Enter'){event.preventDefault();buscarEtiquetasRegistradas();}" class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono uppercase" placeholder="Código frasco, orden, DNI o paciente...">
+                                <button type="button" onclick="buscarEtiquetasRegistradas()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold px-3.5 py-2 rounded-lg transition shrink-0">
+                                    Buscar
+                                </button>
+                            </div>
+
                             <div id="area-impresion" class="space-y-3">
                                 <div class="text-center text-slate-400 text-sm py-10 border-2 border-dashed border-slate-200 rounded-lg">
-                                    Registre una orden para generar los códigos por frasco.
+                                    Registre una orden o busque un frasco para generar etiquetas.
                                 </div>
                             </div>
                         </div>
@@ -150,6 +159,7 @@
                                     <th class="p-2.5">Código Frasco</th>
                                     <th class="p-2.5">Paciente</th>
                                     <th class="p-2.5">Muestra</th>
+                                    <th class="p-2.5">Registrado Por</th>
                                     <th class="p-2.5">Estado Macroscopía</th>
                                 </tr>
                             </thead>
@@ -493,6 +503,78 @@
             return total;
         }
 
+        function renderizarEtiquetas(frascos, ordenBase = null) {
+            const areaImpresion = document.getElementById('area-impresion');
+            const total = frascos.length;
+
+            areaImpresion.innerHTML = frascos.map((f, i) => {
+                const ord = f.ordenes_patologia || ordenBase || {};
+                const matchNum = f.codigo_frasco.match(/-F(\d+)$/i);
+                const etiquetaFrasco = matchNum ? `FRASCO ${matchNum[1]}` : `FRASCO ${i + 1}/${total}`;
+
+                return `
+                    <div class="border-2 border-slate-900 p-3 rounded-lg bg-white text-xs font-mono">
+                        <div class="flex justify-between font-bold border-b border-slate-300 pb-1 mb-1">
+                            <span>${f.codigo_frasco}</span>
+                            <span>${etiquetaFrasco}</span>
+                        </div>
+                        <p class="font-bold text-sm uppercase truncate">${ord.paciente_nombre || 'PACIENTE'}</p>
+                        <p class="text-slate-700 truncate">${f.descripcion_anatomica}</p>
+                        <p class="text-[10px] font-bold mt-1 mb-2 text-emerald-700">
+                            ${formatearEtiqueta(f.estado_pago_frasco)} | Comp: ${ord.numero_comprobante || '-'}
+                        </p>
+                        <div class="flex justify-center pt-1 border-t border-slate-200">
+                            <svg id="barcode-frasco-${i}" class="max-w-full h-11"></svg>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            frascos.forEach((f, i) => {
+                const barcodeEl = document.getElementById(`barcode-frasco-${i}`);
+                if (barcodeEl && window.JsBarcode) {
+                    JsBarcode(barcodeEl, f.codigo_frasco, {
+                        format: 'CODE128',
+                        width: 1.6,
+                        height: 36,
+                        displayValue: false,
+                        margin: 2
+                    });
+                }
+            });
+
+            document.getElementById('btn-imprimir').classList.remove('hidden');
+        }
+
+        async function buscarEtiquetasRegistradas() {
+            const termino = document.getElementById('buscar-etiqueta').value.trim();
+            const areaImpresion = document.getElementById('area-impresion');
+            if (!termino) return;
+
+            areaImpresion.innerHTML = `<div class="text-center text-slate-400 text-xs py-6">Buscando etiquetas...</div>`;
+
+            const upper = termino.toUpperCase();
+            const { data: encontrados, error: errBuscar } = await db
+                .from('frascos_muestra')
+                .select('*, ordenes_patologia!inner(paciente_nombre, paciente_dni, codigo_orden, numero_comprobante)')
+                .or(`codigo_frasco.ilike.%${upper}%,ordenes_patologia.codigo_orden.ilike.%${upper}%,ordenes_patologia.paciente_dni.ilike.%${termino}%,ordenes_patologia.paciente_nombre.ilike.%${termino}%`)
+                .order('id', { ascending: true })
+                .limit(20);
+
+            if (errBuscar) {
+                areaImpresion.innerHTML = `<div class="text-center text-red-600 text-xs py-6">Error al buscar: ${errBuscar.message}</div>`;
+                return;
+            }
+
+            if (!encontrados || encontrados.length === 0) {
+                areaImpresion.innerHTML = `<div class="text-center text-slate-400 text-xs py-6 border-2 border-dashed border-slate-200 rounded-lg">No se encontraron frascos para "${termino}".</div>`;
+                document.getElementById('btn-imprimir').classList.add('hidden');
+                return;
+            }
+
+            renderizarEtiquetas(encontrados);
+        }
+
         document.getElementById('form-recepcion').addEventListener('submit', async (e) => {
             e.preventDefault();
             const cant = parseInt(document.getElementById('cantidad_frascos').value);
@@ -534,38 +616,7 @@
             const { data: frascosCreados, error: errFrascos } = await db.from('frascos_muestra').insert(frascosInsert).select();
             if (errFrascos) return alert('Error al registrar frascos: ' + errFrascos.message);
 
-            const areaImpresion = document.getElementById('area-impresion');
-            areaImpresion.innerHTML = frascosCreados.map((f, i) => `
-                <div class="border-2 border-slate-900 p-3 rounded-lg bg-white text-xs font-mono">
-                    <div class="flex justify-between font-bold border-b border-slate-300 pb-1 mb-1">
-                        <span>${f.codigo_frasco}</span>
-                        <span>FRASCO ${i + 1}/${cant}</span>
-                    </div>
-                    <p class="font-bold text-sm uppercase truncate">${orden.paciente_nombre}</p>
-                    <p class="text-slate-700 truncate">${f.descripcion_anatomica}</p>
-                    <p class="text-[10px] font-bold mt-1 mb-2 text-emerald-700">
-                        ${formatearEtiqueta(f.estado_pago_frasco)} | Comp: ${orden.numero_comprobante}
-                    </p>
-                    <div class="flex justify-center pt-1 border-t border-slate-200">
-                        <svg id="barcode-frasco-${i}" class="max-w-full h-11"></svg>
-                    </div>
-                </div>
-            `).join('');
-
-            frascosCreados.forEach((f, i) => {
-                const barcodeEl = document.getElementById(`barcode-frasco-${i}`);
-                if (barcodeEl && window.JsBarcode) {
-                    JsBarcode(barcodeEl, f.codigo_frasco, {
-                        format: 'CODE128',
-                        width: 1.6,
-                        height: 36,
-                        displayValue: false,
-                        margin: 2
-                    });
-                }
-            });
-
-            document.getElementById('btn-imprimir').classList.remove('hidden');
+            renderizarEtiquetas(frascosCreados, orden);
             document.getElementById('form-recepcion').reset();
             generarInputsFrascos();
         });
@@ -573,7 +624,7 @@
         async function cargarRecepcionVivo() {
             const { data } = await db
                 .from('frascos_muestra')
-                .select('*, ordenes_patologia(paciente_nombre)')
+                .select('*, ordenes_patologia(paciente_nombre, usuario_recepcion)')
                 .order('id', { ascending: false })
                 .limit(15);
 
@@ -587,6 +638,7 @@
                     <td class="p-2.5 font-mono font-bold text-slate-800">${f.codigo_frasco}</td>
                     <td class="p-2.5">${f.ordenes_patologia?.paciente_nombre || '-'}</td>
                     <td class="p-2.5">${f.descripcion_anatomica}</td>
+                    <td class="p-2.5 text-slate-700 font-medium">${f.ordenes_patologia?.usuario_recepcion || '-'}</td>
                     <td class="p-2.5">
                         <span class="px-2.5 py-1 rounded-md text-xs font-bold ${badgeClass}">
                             ${formatearEtiqueta(f.estado)}
