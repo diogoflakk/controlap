@@ -48,32 +48,6 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6aW1xdGxxbGF4eHVsaXplbndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUzNjE0NjYsImV4cCI6MjExMDkzNzQ2Nn0.x2TJlGrelzVdsD0tyAms6jEVqzvnOp1RRstdXU8_B7o';
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        async function validarPerfilYEntrar(user) {
-            const { data: perfil, error } = await db
-                .from('perfiles_usuario')
-                .select('nombre_completo, rol')
-                .eq('id', user.id)
-                .single();
-
-            if (error || !perfil) {
-                await db.auth.signOut();
-                throw new Error('Tu usuario no tiene un rol asignado en perfiles_usuario.');
-            }
-
-            window.location.replace('panelcontrol.html');
-        }
-
-        window.addEventListener('DOMContentLoaded', async () => {
-            const { data: { session } } = await db.auth.getSession();
-            if (session?.user) {
-                try {
-                    await validarPerfilYEntrar(session.user);
-                } catch (_) {
-                    // Permanece en login.html si no tiene perfil válido
-                }
-            }
-        });
-
         document.getElementById('form-login').addEventListener('submit', async (e) => {
             e.preventDefault();
             const errorEl = document.getElementById('login-error');
@@ -91,7 +65,19 @@
                 if (error) {
                     throw new Error('Credenciales inválidas: ' + error.message);
                 }
-                await validarPerfilYEntrar(data.user);
+
+                const { data: perfil, error: errPerfil } = await db
+                    .from('perfiles_usuario')
+                    .select('nombre_completo, rol')
+                    .eq('id', data.user.id)
+                    .single();
+
+                if (errPerfil || !perfil) {
+                    await db.auth.signOut();
+                    throw new Error('Tu usuario no tiene un rol asignado en perfiles_usuario.');
+                }
+
+                window.location.href = 'panelcontrol.html';
             } catch (err) {
                 errorEl.innerText = err.message;
                 errorEl.classList.remove('hidden');
