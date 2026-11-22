@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PatologíaControl - Trazabilidad y Auditoría</title>
+    <title>PatologíaControl - Trazabilidad y Auditoría en Tiempo Real</title>
     <link rel="icon" href="data:,">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -16,6 +16,9 @@
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans">
+
+    <!-- Toast / Alerta Instantánea -->
+    <div id="toast-evento" class="hidden fixed bottom-5 right-5 z-50 max-w-sm bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl border border-emerald-500/50 text-xs font-medium"></div>
 
     <!-- ==========================================
          PANTALLA DE INICIO DE SESIÓN
@@ -54,6 +57,10 @@
             <div class="flex items-center space-x-3">
                 <span class="bg-emerald-500 text-slate-900 font-bold px-2.5 py-1 rounded">AP</span>
                 <h1 class="text-xl font-bold tracking-tight">Patología<span class="text-emerald-400">Control</span></h1>
+                <span id="badge-realtime" class="flex items-center gap-1.5 text-[11px] font-mono bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full text-slate-300">
+                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                    CONECTANDO...
+                </span>
             </div>
 
             <div class="flex space-x-2">
@@ -73,79 +80,99 @@
             </div>
         </nav>
 
-        <main class="max-w-6xl mx-auto p-6">
+        <main class="max-w-6xl mx-auto p-6 space-y-6">
 
             <!-- MÓDULO 1: RECEPCIÓN Y CAJA -->
-            <section id="tab-recepcion" class="tab-content hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                    <h2 class="text-lg font-bold text-slate-800 border-b pb-3 mb-4">Registro de Orden y Cobro Individual por Frasco</h2>
-                    <form id="form-recepcion" class="space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Nombre del Paciente *</label>
-                                <input type="text" id="paciente_nombre" required class="w-full border rounded-lg p-2.5 text-sm" placeholder="Ej: María Gómez Pérez">
+            <section id="tab-recepcion" class="tab-content hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h2 class="text-lg font-bold text-slate-800 border-b pb-3 mb-4">Registro de Orden y Cobro Individual por Frasco</h2>
+                        <form id="form-recepcion" class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Nombre del Paciente *</label>
+                                    <input type="text" id="paciente_nombre" required class="w-full border rounded-lg p-2.5 text-sm" placeholder="Ej: María Gómez Pérez">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">DNI / Documento *</label>
+                                    <input type="text" id="paciente_dni" required class="w-full border rounded-lg p-2.5 text-sm" placeholder="Ej: 45891234">
+                                </div>
                             </div>
-                            <div>
-                                <label class="block text-xs font-bold uppercase text-slate-500 mb-1">DNI / Documento *</label>
-                                <input type="text" id="paciente_dni" required class="w-full border rounded-lg p-2.5 text-sm" placeholder="Ej: 45891234">
-                            </div>
-                        </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                            <div>
-                                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Método de Pago *</label>
-                                <select id="tipo_pago" required class="w-full border rounded-lg p-2.5 text-sm bg-white">
-                                    <option value="EFECTIVO">Efectivo</option>
-                                    <option value="TARJETA">Tarjeta POS</option>
-                                    <option value="TRANSFERENCIA">Transferencia / Yape / Plin</option>
-                                    <option value="SEGURO">Seguro / Convenio</option>
-                                    <option value="CORTESIA_AUTORIZADA">Cortesía (Requiere N° Auth)</option>
-                                </select>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                <div>
+                                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Método de Pago *</label>
+                                    <select id="tipo_pago" required class="w-full border rounded-lg p-2.5 text-sm bg-white">
+                                        <option value="EFECTIVO">Efectivo</option>
+                                        <option value="TARJETA">Tarjeta POS</option>
+                                        <option value="TRANSFERENCIA">Transferencia / Yape / Plin</option>
+                                        <option value="SEGURO">Seguro / Convenio</option>
+                                        <option value="CORTESIA_AUTORIZADA">Cortesía (Requiere N° Auth)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1">N° Boleta / Comprobante *</label>
+                                    <input type="text" id="numero_comprobante" required class="w-full border rounded-lg p-2.5 text-sm" placeholder="Ej: B001-004521">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Cantidad de Frascos *</label>
+                                    <input type="number" id="cantidad_frascos" min="1" max="15" value="1" required onchange="generarInputsFrascos()" class="w-full border-2 border-emerald-500 rounded-lg p-2.5 text-sm font-bold">
+                                </div>
                             </div>
-                            <div>
-                                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">N° Boleta / Comprobante *</label>
-                                <input type="text" id="numero_comprobante" required class="w-full border rounded-lg p-2.5 text-sm" placeholder="Ej: B001-004521">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Cantidad de Frascos *</label>
-                                <input type="number" id="cantidad_frascos" min="1" max="15" value="1" required onchange="generarInputsFrascos()" class="w-full border-2 border-emerald-500 rounded-lg p-2.5 text-sm font-bold">
-                            </div>
-                        </div>
 
+                            <div>
+                                <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Médico Remitente</label>
+                                <input type="text" id="medico_remitente" class="w-full border rounded-lg p-2.5 text-sm" placeholder="Dr. Carlos Mendoza">
+                            </div>
+
+                            <div id="contenedor-frascos" class="space-y-3 bg-emerald-50/60 p-4 rounded-lg border border-emerald-200"></div>
+
+                            <div class="flex justify-between items-center bg-slate-900 text-white px-4 py-3 rounded-lg">
+                                <span class="text-xs uppercase font-bold text-slate-300">Total Boleta (Suma de frascos):</span>
+                                <span id="total-orden-preview" class="text-xl font-black text-emerald-400">S/ 0.00</span>
+                            </div>
+
+                            <div class="flex justify-between items-center pt-2">
+                                <input type="text" id="usuario_recepcion" required class="border rounded-lg p-2 text-sm w-48" placeholder="Tu nombre (Recepción)">
+                                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-lg shadow">
+                                    Registrar y Generar Etiquetas
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
                         <div>
-                            <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Médico Remitente</label>
-                            <input type="text" id="medico_remitente" class="w-full border rounded-lg p-2.5 text-sm" placeholder="Dr. Carlos Mendoza">
+                            <h3 class="text-lg font-bold text-slate-800 border-b pb-3 mb-4">Etiquetas de Trazabilidad</h3>
+                            <p class="text-xs text-slate-500 mb-4">Cada etiqueta muestra si el frasco fue pagado individualmente o incluido en paquete.</p>
+                            <div id="area-impresion" class="space-y-3">
+                                <div class="text-center text-slate-400 text-sm py-10 border-2 border-dashed rounded-lg">
+                                    Registre una orden para generar los códigos por frasco.
+                                </div>
+                            </div>
                         </div>
-
-                        <div id="contenedor-frascos" class="space-y-3 bg-emerald-50/60 p-4 rounded-lg border border-emerald-200"></div>
-
-                        <div class="flex justify-between items-center bg-slate-900 text-white px-4 py-3 rounded-lg">
-                            <span class="text-xs uppercase font-bold text-slate-300">Total Boleta (Suma de frascos):</span>
-                            <span id="total-orden-preview" class="text-xl font-black text-emerald-400">S/ 0.00</span>
-                        </div>
-
-                        <div class="flex justify-between items-center pt-2">
-                            <input type="text" id="usuario_recepcion" required class="border rounded-lg p-2 text-sm w-48" placeholder="Tu nombre (Recepción)">
-                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-lg shadow">
-                                Registrar y Generar Etiquetas
-                            </button>
-                        </div>
-                    </form>
+                        <button onclick="window.print()" id="btn-imprimir" class="hidden mt-4 w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 rounded-lg">
+                            🖨️ Imprimir Etiquetas
+                        </button>
+                    </div>
                 </div>
 
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
-                    <div>
-                        <h3 class="text-lg font-bold text-slate-800 border-b pb-3 mb-4">Etiquetas de Trazabilidad</h3>
-                        <p class="text-xs text-slate-500 mb-4">Cada etiqueta muestra si el frasco fue pagado individualmente o incluido en paquete.</p>
-                        <div id="area-impresion" class="space-y-3">
-                            <div class="text-center text-slate-400 text-sm py-10 border-2 border-dashed rounded-lg">
-                                Registre una orden para generar los códigos por frasco.
-                            </div>
-                        </div>
+                <!-- Monitor en Vivo para Recepción -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="text-sm font-bold uppercase text-slate-600 mb-3">Estado en Vivo de Frascos Registrados</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-600 border-b">
+                                    <th class="p-2.5">Código Frasco</th>
+                                    <th class="p-2.5">Paciente</th>
+                                    <th class="p-2.5">Muestra</th>
+                                    <th class="p-2.5">Estado Macroscopía</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-recepcion-vivo" class="divide-y"></tbody>
+                        </table>
                     </div>
-                    <button onclick="window.print()" id="btn-imprimir" class="hidden mt-4 w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 rounded-lg">
-                        🖨️ Imprimir Etiquetas
-                    </button>
                 </div>
             </section>
 
@@ -162,7 +189,7 @@
 
                     <div id="feedback-escaneo" class="hidden mb-4 p-4 rounded-lg font-medium text-sm"></div>
 
-                    <h3 class="text-sm font-bold uppercase text-slate-500 mb-2">Últimos Frascos Registrados</h3>
+                    <h3 class="text-sm font-bold uppercase text-slate-500 mb-2">Frascos en Cola / Procesados (En Vivo)</h3>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse text-sm">
                             <thead>
@@ -232,7 +259,7 @@
                 </div>
 
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                    <h3 class="text-lg font-bold text-red-700 mb-2">⚠️ Registro de Frascos Físicos No Registrados (Discrepancias)</h3>
+                    <h3 class="text-lg font-bold text-red-700 mb-2">⚠️ Registro de Frascos Físicos No Registrados (En Vivo)</h3>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse text-sm">
                             <thead>
@@ -259,7 +286,6 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6aW1xdGxxbGF4eHVsaXplbndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUzNjE0NjYsImV4cCI6MjExMDkzNzQ2Nn0.x2TJlGrelzVdsD0tyAms6jEVqzvnOp1RRstdXU8_B7o';
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Permisos de pestañas por rol (puedes ajustar a 1 o 2 pestañas por rol)
         const PERMISOS_POR_ROL = {
             RECEPCION: ['recepcion'],
             MACROSCOPIA: ['macroscopia'],
@@ -268,6 +294,74 @@
 
         let rolActual = null;
         let pestanasPermitidas = [];
+        let canalRealtime = null;
+        let toastTimeout = null;
+
+        function mostrarToast(mensaje) {
+            const toast = document.getElementById('toast-evento');
+            if (!toast) return;
+            toast.innerText = mensaje;
+            toast.classList.remove('hidden');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3500);
+        }
+
+        // ==========================================
+        // SINCRONIZACIÓN EN TIEMPO REAL (TODAS LAS ÁREAS)
+        // ==========================================
+        function iniciarRealtime() {
+            if (canalRealtime) {
+                db.removeChannel(canalRealtime);
+            }
+
+            canalRealtime = db
+                .channel('patologia-realtime-sync-v2')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'ordenes_patologia' }, (payload) => {
+                    if (payload.eventType === 'INSERT') {
+                        mostrarToast(`📥 Nueva orden registrada: ${payload.new.codigo_orden || ''}`);
+                    }
+                    refrescarAreasActivas();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'frascos_muestra' }, (payload) => {
+                    if (payload.eventType === 'UPDATE' && payload.new.estado === 'ESCANEADO_MACROSCOPIA') {
+                        mostrarToast(`✅ Frasco validado en macroscopía: ${payload.new.codigo_frasco}`);
+                    }
+                    refrescarAreasActivas();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'incidencias_huerfanos' }, (payload) => {
+                    if (payload.eventType === 'INSERT') {
+                        mostrarToast(`🚨 Frasco sin código reportado: ${payload.new.nombre_etiqueta_manual}`);
+                    } else if (payload.eventType === 'UPDATE') {
+                        mostrarToast(`⚖️ Incidencia actualizada: ${payload.new.estado_auditoria}`);
+                    }
+                    refrescarAreasActivas();
+                })
+                .subscribe((status) => {
+                    const badge = document.getElementById('badge-realtime');
+                    if (!badge) return;
+                    if (status === 'SUBSCRIBED') {
+                        badge.className = 'flex items-center gap-1.5 text-[11px] font-mono bg-emerald-950 border border-emerald-600 px-2.5 py-1 rounded-full text-emerald-300';
+                        badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span>EN VIVO`;
+                    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                        badge.className = 'flex items-center gap-1.5 text-[11px] font-mono bg-red-950 border border-red-600 px-2.5 py-1 rounded-full text-red-300';
+                        badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-400"></span>SIN REALTIME`;
+                    }
+                });
+        }
+
+        function refrescarAreasActivas() {
+            if (pestanasPermitidas.includes('recepcion')) {
+                cargarRecepcionVivo();
+            }
+            if (pestanasPermitidas.includes('macroscopia')) {
+                cargarPendientesMacro();
+            }
+            if (pestanasPermitidas.includes('auditoria')) {
+                cargarAuditoria();
+            }
+        }
 
         // Login
         document.getElementById('form-login').addEventListener('submit', async (e) => {
@@ -308,7 +402,6 @@
             document.getElementById('info-usuario').innerText = perfil.nombre_completo;
             document.getElementById('info-rol').innerText = rolActual;
 
-            // Mostrar solo los botones permitidos para su rol
             ['recepcion', 'macroscopia', 'auditoria'].forEach(tab => {
                 const btn = document.getElementById(`btn-${tab}`);
                 if (pestanasPermitidas.includes(tab)) {
@@ -318,12 +411,19 @@
                 }
             });
 
+            iniciarRealtime();
+            refrescarAreasActivas();
+
             if (pestanasPermitidas.length > 0) {
                 cambiarTab(pestanasPermitidas[0]);
             }
         }
 
         async function cerrarSesion() {
+            if (canalRealtime) {
+                await db.removeChannel(canalRealtime);
+                canalRealtime = null;
+            }
             await db.auth.signOut();
             rolActual = null;
             pestanasPermitidas = [];
@@ -331,7 +431,6 @@
             document.getElementById('pantalla-login').classList.remove('hidden');
         }
 
-        // Mantener sesión si ya estaba logueado
         window.addEventListener('DOMContentLoaded', async () => {
             generarInputsFrascos();
             const { data: { session } } = await db.auth.getSession();
@@ -352,6 +451,7 @@
             document.getElementById(`btn-${tab}`).classList.remove('bg-slate-700');
             document.getElementById(`btn-${tab}`).classList.add('bg-emerald-600');
 
+            if (tab === 'recepcion') cargarRecepcionVivo();
             if (tab === 'macroscopia') cargarPendientesMacro();
             if (tab === 'auditoria') cargarAuditoria();
         }
@@ -465,6 +565,29 @@
             generarInputsFrascos();
         });
 
+        async function cargarRecepcionVivo() {
+            const { data } = await db
+                .from('frascos_muestra')
+                .select('*, ordenes_patologia(paciente_nombre)')
+                .order('id', { ascending: false })
+                .limit(15);
+
+            const tbody = document.getElementById('tabla-recepcion-vivo');
+            if (!tbody) return;
+            tbody.innerHTML = (data || []).map(f => `
+                <tr>
+                    <td class="p-2.5 font-mono font-bold">${f.codigo_frasco}</td>
+                    <td class="p-2.5">${f.ordenes_patologia?.paciente_nombre || '-'}</td>
+                    <td class="p-2.5">${f.descripcion_anatomica}</td>
+                    <td class="p-2.5">
+                        <span class="px-2 py-1 rounded text-xs font-bold ${f.estado === 'EN_RECEPCION' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">
+                            ${f.estado}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
         document.getElementById('input-escaneo').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') escanearFrasco();
         });
@@ -498,7 +621,6 @@
 
                 feedback.classList.add('bg-emerald-100', 'text-emerald-800');
                 feedback.innerHTML = `✅ <strong>VALIDADO:</strong> ${codigo} | Paciente: <strong>${frasco.ordenes_patologia.paciente_nombre}</strong> | ${frasco.descripcion_anatomica}`;
-                cargarPendientesMacro();
             }
             document.getElementById('input-escaneo').value = '';
         }
@@ -511,6 +633,7 @@
                 .limit(20);
 
             const tbody = document.getElementById('tabla-pendientes-macro');
+            if (!tbody) return;
             tbody.innerHTML = (data || []).map(f => `
                 <tr>
                     <td class="p-2.5 font-mono font-bold">${f.codigo_frasco}</td>
@@ -564,6 +687,7 @@
             document.getElementById('kpi-regularizado-detalle').innerText = `+ S/ ${dineroRegularizado.toFixed(2)} regularizado`;
 
             const tbody = document.getElementById('tabla-incidencias');
+            if (!tbody) return;
             tbody.innerHTML = (incidencias || []).map(inc => `
                 <tr class="${inc.estado_auditoria === 'PENDIENTE_REGULARIZAR' ? 'bg-red-50/40' : ''}">
                     <td class="p-3 text-xs">${new Date(inc.fecha_deteccion).toLocaleString()}</td>
@@ -601,7 +725,6 @@
                 monto_regularizado: monto,
                 comprobante_regularizacion: comp
             }).eq('id', id);
-            cargarAuditoria();
         }
 
         async function marcarComoError(id) {
@@ -611,7 +734,6 @@
                 monto_regularizado: 0,
                 notas_gerencia: nota
             }).eq('id', id);
-            cargarAuditoria();
         }
     </script>
 </body>
