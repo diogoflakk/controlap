@@ -112,7 +112,10 @@
                                     <input type="number" id="cantidad_frascos" min="1" max="15" value="1" required onchange="generarInputsFrascos()" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm font-bold">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold uppercase text-amber-800 mb-1">Código Fco (Salto Opcional)</label>
+                                    <div class="flex items-center justify-between gap-1 mb-1">
+                                        <label class="block text-xs font-bold uppercase text-amber-800">Código Fco (Salto)</label>
+                                        <span id="badge-ultimo-fco" class="font-mono text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.5 rounded">Último: ---</span>
+                                    </div>
                                     <input type="text" id="codigo_fco_manual" oninput="this.value=this.value.toUpperCase()" maxlength="6" class="w-full border border-amber-400 rounded-lg p-2.5 text-sm font-mono uppercase" placeholder="Ej: CE-203">
                                     <span class="text-[10px] text-slate-500 leading-tight block mt-0.5">Vacío = sigue correlativo.</span>
                                 </div>
@@ -454,6 +457,31 @@
             return obtenerFechaLocalYYYYMMDD(dt) === fechaYYYYMMDD;
         }
 
+        async function actualizarIndicadorUltimoFrasco() {
+            const badge = document.getElementById('badge-ultimo-fco');
+            if (!badge) return;
+
+            const { data, error } = await db
+                .from('correlativo_frascos')
+                .select('ultima_clave')
+                .eq('id', 1)
+                .single();
+
+            if (!error && data?.ultima_clave) {
+                badge.innerText = `Último: ${data.ultima_clave}`;
+                return;
+            }
+
+            const { data: ultimoFco } = await db
+                .from('frascos_muestra')
+                .select('codigo_frasco')
+                .order('id', { ascending: false })
+                .limit(1)
+                .single();
+
+            badge.innerText = ultimoFco?.codigo_frasco ? `Último: ${ultimoFco.codigo_frasco}` : 'Último: ---';
+        }
+
         function normalizarClaveCortesia(clave) {
             return String(clave || '')
                 .trim()
@@ -705,7 +733,10 @@
             }
 
             canalRealtime = db
-                .channel('patologia-realtime-sync-v11')
+                .channel('patologia-realtime-sync-v12')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'correlativo_frascos' }, () => {
+                    actualizarIndicadorUltimoFrasco();
+                })
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'configuracion_cortesia' }, (payload) => {
                     const nuevaClave = payload.new?.clave_activa;
                     if (esFormatoClaveCortesiaValido(nuevaClave)) {
@@ -755,6 +786,7 @@
 
         function refrescarAreasActivas() {
             if (pestanasPermitidas.includes('recepcion')) {
+                actualizarIndicadorUltimoFrasco();
                 cargarRecepcionVivo();
             }
             if (pestanasPermitidas.includes('macroscopia')) {
@@ -850,7 +882,10 @@
             activeBtn.classList.add('text-white');
             activeBtn.style.backgroundColor = '#990820';
 
-            if (tab === 'recepcion') cargarRecepcionVivo();
+            if (tab === 'recepcion') {
+                actualizarIndicadorUltimoFrasco();
+                cargarRecepcionVivo();
+            }
             if (tab === 'macroscopia') {
                 cargarPendientesMacro();
             }
@@ -1098,6 +1133,7 @@
             renderizarEtiquetas(frascosCreados, orden);
             document.getElementById('form-recepcion').reset();
             generarInputsFrascos();
+            actualizarIndicadorUltimoFrasco();
         });
 
         async function cargarRecepcionVivo() {
