@@ -17,222 +17,332 @@
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans">
 
-    <!-- Navbar -->
-    <nav class="bg-slate-900 text-white px-6 py-4 shadow-md flex justify-between items-center">
-        <div class="flex items-center space-x-3">
-            <span class="bg-emerald-500 text-slate-900 font-bold px-2.5 py-1 rounded">AP</span>
-            <h1 class="text-xl font-bold tracking-tight">Patología<span class="text-emerald-400">Control</span></h1>
+    <!-- ==========================================
+         PANTALLA DE INICIO DE SESIÓN
+         ========================================== -->
+    <div id="pantalla-login" class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md p-8 rounded-2xl shadow-md border border-slate-200">
+            <div class="flex items-center space-x-3 mb-6">
+                <span class="bg-emerald-500 text-slate-900 font-bold px-2.5 py-1 rounded">AP</span>
+                <h1 class="text-xl font-bold tracking-tight">Patología<span class="text-emerald-600">Control</span></h1>
+            </div>
+            <h2 class="text-lg font-bold text-slate-800 mb-1">Iniciar Sesión</h2>
+            <p class="text-xs text-slate-500 mb-6">Acceso restringido según rol del área.</p>
+
+            <form id="form-login" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Correo Institucional</label>
+                    <input type="email" id="login-email" required class="w-full border rounded-lg p-2.5 text-sm" placeholder="usuario@laboratorio.com">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Contraseña</label>
+                    <input type="password" id="login-password" required class="w-full border rounded-lg p-2.5 text-sm" placeholder="••••••••">
+                </div>
+                <p id="login-error" class="hidden text-xs text-red-600 font-semibold bg-red-50 p-2.5 rounded"></p>
+                <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg">
+                    Ingresar al Sistema
+                </button>
+            </form>
         </div>
-        <div class="flex space-x-2">
-            <button onclick="cambiarTab('recepcion')" id="btn-recepcion" class="tab-btn bg-emerald-600 px-4 py-2 rounded font-medium text-sm">1. Recepción y Caja</button>
-            <button onclick="cambiarTab('macroscopia')" id="btn-macroscopia" class="tab-btn bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded font-medium text-sm">2. Macroscopía (Escaneo)</button>
-            <button onclick="cambiarTab('auditoria')" id="btn-auditoria" class="tab-btn bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded font-medium text-sm">3. Cuadre y Auditoría</button>
-        </div>
-    </nav>
+    </div>
 
-    <main class="max-w-6xl mx-auto p-6">
-
-        <!-- ==========================================
-             MÓDULO 1: RECEPCIÓN Y CAJA (CONTROL POR FRASCO)
-             ========================================== -->
-        <section id="tab-recepcion" class="tab-content grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                <h2 class="text-lg font-bold text-slate-800 border-b pb-3 mb-4">Registro de Orden y Cobro Individual por Frasco</h2>
-                <form id="form-recepcion" class="space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Nombre del Paciente *</label>
-                            <input type="text" id="paciente_nombre" required class="w-full border rounded-lg p-2.5 text-sm" placeholder="Ej: María Gómez Pérez">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold uppercase text-slate-500 mb-1">DNI / Documento *</label>
-                            <input type="text" id="paciente_dni" required class="w-full border rounded-lg p-2.5 text-sm" placeholder="Ej: 45891234">
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                        <div>
-                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Método de Pago *</label>
-                            <select id="tipo_pago" required class="w-full border rounded-lg p-2.5 text-sm bg-white">
-                                <option value="EFECTIVO">Efectivo</option>
-                                <option value="TARJETA">Tarjeta POS</option>
-                                <option value="TRANSFERENCIA">Transferencia / Yape / Plin</option>
-                                <option value="SEGURO">Seguro / Convenio</option>
-                                <option value="CORTESIA_AUTORIZADA">Cortesía (Requiere N° Auth)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">N° Boleta / Comprobante *</label>
-                            <input type="text" id="numero_comprobante" required class="w-full border rounded-lg p-2.5 text-sm" placeholder="Ej: B001-004521">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Cantidad de Frascos *</label>
-                            <input type="number" id="cantidad_frascos" min="1" max="15" value="1" required onchange="generarInputsFrascos()" class="w-full border-2 border-emerald-500 rounded-lg p-2.5 text-sm font-bold">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Médico Remitente</label>
-                        <input type="text" id="medico_remitente" class="w-full border rounded-lg p-2.5 text-sm" placeholder="Dr. Carlos Mendoza">
-                    </div>
-
-                    <!-- Contenedor dinámico: Cada frasco exige descripción + estado de pago + monto -->
-                    <div id="contenedor-frascos" class="space-y-3 bg-emerald-50/60 p-4 rounded-lg border border-emerald-200"></div>
-
-                    <div class="flex justify-between items-center bg-slate-900 text-white px-4 py-3 rounded-lg">
-                        <span class="text-xs uppercase font-bold text-slate-300">Total Boleta (Suma de frascos):</span>
-                        <span id="total-orden-preview" class="text-xl font-black text-emerald-400">S/ 0.00</span>
-                    </div>
-
-                    <div class="flex justify-between items-center pt-2">
-                        <input type="text" id="usuario_recepcion" required class="border rounded-lg p-2 text-sm w-48" placeholder="Tu nombre (Recepción)">
-                        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-lg shadow">
-                            Registrar y Generar Etiquetas
-                        </button>
-                    </div>
-                </form>
+    <!-- ==========================================
+         APLICACIÓN PRINCIPAL (OCULTA HASTA LOGIN)
+         ========================================== -->
+    <div id="app-principal" class="hidden">
+        <nav class="bg-slate-900 text-white px-6 py-4 shadow-md flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center space-x-3">
+                <span class="bg-emerald-500 text-slate-900 font-bold px-2.5 py-1 rounded">AP</span>
+                <h1 class="text-xl font-bold tracking-tight">Patología<span class="text-emerald-400">Control</span></h1>
             </div>
 
-            <!-- Panel de Etiquetas Generadas -->
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
-                <div>
-                    <h3 class="text-lg font-bold text-slate-800 border-b pb-3 mb-4">Etiquetas de Trazabilidad</h3>
-                    <p class="text-xs text-slate-500 mb-4">Cada etiqueta muestra si el frasco fue pagado individualmente o incluido en paquete.</p>
-                    <div id="area-impresion" class="space-y-3">
-                        <div class="text-center text-slate-400 text-sm py-10 border-2 border-dashed rounded-lg">
-                            Registre una orden para generar los códigos por frasco.
-                        </div>
-                    </div>
+            <div class="flex space-x-2">
+                <button onclick="cambiarTab('recepcion')" id="btn-recepcion" class="tab-btn hidden bg-emerald-600 px-4 py-2 rounded font-medium text-sm">1. Recepción y Caja</button>
+                <button onclick="cambiarTab('macroscopia')" id="btn-macroscopia" class="tab-btn hidden bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded font-medium text-sm">2. Macroscopía (Escaneo)</button>
+                <button onclick="cambiarTab('auditoria')" id="btn-auditoria" class="tab-btn hidden bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded font-medium text-sm">3. Cuadre y Auditoría</button>
+            </div>
+
+            <div class="flex items-center space-x-3 text-xs">
+                <div class="text-right">
+                    <div id="info-usuario" class="font-bold text-white">Usuario</div>
+                    <div id="info-rol" class="text-emerald-400 font-mono uppercase">ROL</div>
                 </div>
-                <button onclick="window.print()" id="btn-imprimir" class="hidden mt-4 w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 rounded-lg">
-                    🖨️ Imprimir Etiquetas
+                <button onclick="cerrarSesion()" class="bg-red-600/90 hover:bg-red-600 text-white px-3 py-1.5 rounded font-semibold">
+                    Salir
                 </button>
             </div>
-        </section>
+        </nav>
 
-        <!-- ==========================================
-             MÓDULO 2: MACROSCOPÍA (CONTROL DE MESA)
-             ========================================== -->
-        <section id="tab-macroscopia" class="tab-content hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                <h2 class="text-lg font-bold text-slate-800 border-b pb-3 mb-4">Estación de Escaneo en Macroscopía</h2>
-                
-                <div class="flex gap-3 mb-6">
-                    <input type="text" id="operador_macro" class="border rounded-lg p-3 text-sm w-48" placeholder="Patólogo / Tecnólogo">
-                    <input type="text" id="input-escaneo" autofocus class="flex-1 border-2 border-blue-500 rounded-lg p-3 text-lg font-mono uppercase" placeholder="Escanee o escriba código (Ej: AP-2026-XXXX-F1)">
-                    <button onclick="escanearFrasco()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 rounded-lg">Validar</button>
+        <main class="max-w-6xl mx-auto p-6">
+
+            <!-- MÓDULO 1: RECEPCIÓN Y CAJA -->
+            <section id="tab-recepcion" class="tab-content hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="text-lg font-bold text-slate-800 border-b pb-3 mb-4">Registro de Orden y Cobro Individual por Frasco</h2>
+                    <form id="form-recepcion" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Nombre del Paciente *</label>
+                                <input type="text" id="paciente_nombre" required class="w-full border rounded-lg p-2.5 text-sm" placeholder="Ej: María Gómez Pérez">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold uppercase text-slate-500 mb-1">DNI / Documento *</label>
+                                <input type="text" id="paciente_dni" required class="w-full border rounded-lg p-2.5 text-sm" placeholder="Ej: 45891234">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                            <div>
+                                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Método de Pago *</label>
+                                <select id="tipo_pago" required class="w-full border rounded-lg p-2.5 text-sm bg-white">
+                                    <option value="EFECTIVO">Efectivo</option>
+                                    <option value="TARJETA">Tarjeta POS</option>
+                                    <option value="TRANSFERENCIA">Transferencia / Yape / Plin</option>
+                                    <option value="SEGURO">Seguro / Convenio</option>
+                                    <option value="CORTESIA_AUTORIZADA">Cortesía (Requiere N° Auth)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">N° Boleta / Comprobante *</label>
+                                <input type="text" id="numero_comprobante" required class="w-full border rounded-lg p-2.5 text-sm" placeholder="Ej: B001-004521">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Cantidad de Frascos *</label>
+                                <input type="number" id="cantidad_frascos" min="1" max="15" value="1" required onchange="generarInputsFrascos()" class="w-full border-2 border-emerald-500 rounded-lg p-2.5 text-sm font-bold">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Médico Remitente</label>
+                            <input type="text" id="medico_remitente" class="w-full border rounded-lg p-2.5 text-sm" placeholder="Dr. Carlos Mendoza">
+                        </div>
+
+                        <div id="contenedor-frascos" class="space-y-3 bg-emerald-50/60 p-4 rounded-lg border border-emerald-200"></div>
+
+                        <div class="flex justify-between items-center bg-slate-900 text-white px-4 py-3 rounded-lg">
+                            <span class="text-xs uppercase font-bold text-slate-300">Total Boleta (Suma de frascos):</span>
+                            <span id="total-orden-preview" class="text-xl font-black text-emerald-400">S/ 0.00</span>
+                        </div>
+
+                        <div class="flex justify-between items-center pt-2">
+                            <input type="text" id="usuario_recepcion" required class="border rounded-lg p-2 text-sm w-48" placeholder="Tu nombre (Recepción)">
+                            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-lg shadow">
+                                Registrar y Generar Etiquetas
+                            </button>
+                        </div>
+                    </form>
                 </div>
 
-                <div id="feedback-escaneo" class="hidden mb-4 p-4 rounded-lg font-medium text-sm"></div>
-
-                <h3 class="text-sm font-bold uppercase text-slate-500 mb-2">Últimos Frascos Registrados</h3>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-sm">
-                        <thead>
-                            <tr class="bg-slate-100 text-slate-600 border-b">
-                                <th class="p-2.5">Código Frasco</th>
-                                <th class="p-2.5">Paciente</th>
-                                <th class="p-2.5">Muestra</th>
-                                <th class="p-2.5">Condición Pago</th>
-                                <th class="p-2.5">Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-pendientes-macro" class="divide-y"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- ALERTA ROJA: Reporte de Frasco sin Registro -->
-            <div class="bg-red-50 p-6 rounded-xl shadow-sm border-2 border-red-300">
-                <div class="flex items-center gap-2 text-red-700 font-bold text-lg mb-2">
-                    <span>🚨 Frasco Sin Código</span>
-                </div>
-                <p class="text-xs text-red-800 mb-4">
-                    Si encuentra un frasco físico en mesa que <strong>NO tiene etiqueta del sistema</strong> (ej. trajeron 3 y solo etiquetaron 2), repórtelo aquí inmediatamente.
-                </p>
-                <form id="form-huerfano" class="space-y-3">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
                     <div>
-                        <label class="block text-xs font-bold text-red-900 mb-1">Nombre escrito a mano en el frasco *</label>
-                        <input type="text" id="huerfano_nombre" required class="w-full border border-red-300 rounded p-2 text-sm bg-white" placeholder="Ej: Juan Perez - Frasco 3">
+                        <h3 class="text-lg font-bold text-slate-800 border-b pb-3 mb-4">Etiquetas de Trazabilidad</h3>
+                        <p class="text-xs text-slate-500 mb-4">Cada etiqueta muestra si el frasco fue pagado individualmente o incluido en paquete.</p>
+                        <div id="area-impresion" class="space-y-3">
+                            <div class="text-center text-slate-400 text-sm py-10 border-2 border-dashed rounded-lg">
+                                Registre una orden para generar los códigos por frasco.
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-red-900 mb-1">Tipo de Muestra / Envase *</label>
-                        <input type="text" id="huerfano_desc" required class="w-full border border-red-300 rounded p-2 text-sm bg-white" placeholder="Ej: Frasco chico sin boleta">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-red-900 mb-1">¿Quién lo dejó / turno?</label>
-                        <input type="text" id="huerfano_entrego" class="w-full border border-red-300 rounded p-2 text-sm bg-white" placeholder="Ej: Enfermería / Recepción">
-                    </div>
-                    <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg shadow mt-2">
-                        Registrar Incidencia y Bloquear
+                    <button onclick="window.print()" id="btn-imprimir" class="hidden mt-4 w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 rounded-lg">
+                        🖨️ Imprimir Etiquetas
                     </button>
-                </form>
-            </div>
-        </section>
+                </div>
+            </section>
 
-        <!-- ==========================================
-             MÓDULO 3: AUDITORÍA Y CUADRE NOCTURNO
-             ========================================== -->
-        <section id="tab-auditoria" class="tab-content hidden space-y-6">
-            <!-- KPIs de Control -->
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    <span class="text-[11px] font-bold text-slate-400 uppercase">Frascos Registrados</span>
-                    <p id="kpi-registrados" class="text-2xl font-black text-slate-800 mt-1">0</p>
-                </div>
-                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    <span class="text-[11px] font-bold text-slate-400 uppercase">Escaneados Macro</span>
-                    <p id="kpi-escaneados" class="text-2xl font-black text-blue-600 mt-1">0</p>
-                </div>
-                <div class="bg-white p-4 rounded-xl border-2 border-red-200 shadow-sm">
-                    <span class="text-[11px] font-bold text-red-500 uppercase">Huérfanos Pendientes</span>
-                    <p id="kpi-huerfanos" class="text-2xl font-black text-red-600 mt-1">0</p>
-                </div>
-                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    <span class="text-[11px] font-bold text-slate-400 uppercase">Caja Inicial</span>
-                    <p id="kpi-dinero-caja" class="text-2xl font-black text-slate-700 mt-1">S/ 0.00</p>
-                </div>
-                <div class="bg-emerald-50 p-4 rounded-xl border-2 border-emerald-300 shadow-sm">
-                    <span class="text-[11px] font-bold text-emerald-700 uppercase">Total Auditado Real</span>
-                    <p id="kpi-dinero-total" class="text-2xl font-black text-emerald-700 mt-1">S/ 0.00</p>
-                    <span id="kpi-regularizado-detalle" class="text-[10px] text-emerald-600 font-semibold">+ S/ 0.00 regularizado</span>
-                </div>
-            </div>
+            <!-- MÓDULO 2: MACROSCOPÍA -->
+            <section id="tab-macroscopia" class="tab-content hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h2 class="text-lg font-bold text-slate-800 border-b pb-3 mb-4">Estación de Escaneo en Macroscopía</h2>
+                    
+                    <div class="flex gap-3 mb-6">
+                        <input type="text" id="operador_macro" class="border rounded-lg p-3 text-sm w-48" placeholder="Patólogo / Tecnólogo">
+                        <input type="text" id="input-escaneo" class="flex-1 border-2 border-blue-500 rounded-lg p-3 text-lg font-mono uppercase" placeholder="Escanee o escriba código (Ej: AP-2026-XXXX-F1)">
+                        <button onclick="escanearFrasco()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 rounded-lg">Validar</button>
+                    </div>
 
-            <!-- Tabla de Alertas de Discrepancia -->
-            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                <h3 class="text-lg font-bold text-red-700 mb-2">⚠️ Registro de Frascos Físicos No Registrados (Discrepancias)</h3>
-                <p class="text-xs text-slate-500 mb-4">
-                    • <strong>Regularizó Pago:</strong> Suma el nuevo cobro al Total Auditado Real.<br>
-                    • <strong>Fue Error:</strong> Cierra la alerta sin alterar la caja (el dinero recaudado se mantiene intacto).
-                </p>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse text-sm">
-                        <thead>
-                            <tr class="bg-red-50 text-red-900 border-b border-red-200">
-                                <th class="p-3">Fecha / Hora</th>
-                                <th class="p-3">Rotulado Manual</th>
-                                <th class="p-3">Descripción</th>
-                                <th class="p-3">Origen</th>
-                                <th class="p-3">Estado Auditoría</th>
-                                <th class="p-3">Monto Reg.</th>
-                                <th class="p-3">Acción Gerencia</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabla-incidencias" class="divide-y"></tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
+                    <div id="feedback-escaneo" class="hidden mb-4 p-4 rounded-lg font-medium text-sm"></div>
 
-    </main>
+                    <h3 class="text-sm font-bold uppercase text-slate-500 mb-2">Últimos Frascos Registrados</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-600 border-b">
+                                    <th class="p-2.5">Código Frasco</th>
+                                    <th class="p-2.5">Paciente</th>
+                                    <th class="p-2.5">Muestra</th>
+                                    <th class="p-2.5">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-pendientes-macro" class="divide-y"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-red-50 p-6 rounded-xl shadow-sm border-2 border-red-300">
+                    <div class="flex items-center gap-2 text-red-700 font-bold text-lg mb-2">
+                        <span>🚨 Frasco Sin Código</span>
+                    </div>
+                    <p class="text-xs text-red-800 mb-4">
+                        Si encuentra un frasco físico en mesa que <strong>NO tiene etiqueta del sistema</strong>, repórtelo aquí inmediatamente.
+                    </p>
+                    <form id="form-huerfano" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold text-red-900 mb-1">Nombre escrito a mano en el frasco *</label>
+                            <input type="text" id="huerfano_nombre" required class="w-full border border-red-300 rounded p-2 text-sm bg-white" placeholder="Ej: Juan Perez - Frasco 3">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-red-900 mb-1">Tipo de Muestra / Envase *</label>
+                            <input type="text" id="huerfano_desc" required class="w-full border border-red-300 rounded p-2 text-sm bg-white" placeholder="Ej: Frasco chico sin boleta">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-red-900 mb-1">¿Quién lo dejó / turno?</label>
+                            <input type="text" id="huerfano_entrego" class="w-full border border-red-300 rounded p-2 text-sm bg-white" placeholder="Ej: Enfermería / Recepción">
+                        </div>
+                        <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg shadow mt-2">
+                            Registrar Incidencia y Bloquear
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- MÓDULO 3: AUDITORÍA Y CUADRE -->
+            <section id="tab-auditoria" class="tab-content hidden space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                        <span class="text-[11px] font-bold text-slate-400 uppercase">Frascos Registrados</span>
+                        <p id="kpi-registrados" class="text-2xl font-black text-slate-800 mt-1">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                        <span class="text-[11px] font-bold text-slate-400 uppercase">Escaneados Macro</span>
+                        <p id="kpi-escaneados" class="text-2xl font-black text-blue-600 mt-1">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border-2 border-red-200 shadow-sm">
+                        <span class="text-[11px] font-bold text-red-500 uppercase">Huérfanos Pendientes</span>
+                        <p id="kpi-huerfanos" class="text-2xl font-black text-red-600 mt-1">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                        <span class="text-[11px] font-bold text-slate-400 uppercase">Caja Inicial</span>
+                        <p id="kpi-dinero-caja" class="text-2xl font-black text-slate-700 mt-1">S/ 0.00</p>
+                    </div>
+                    <div class="bg-emerald-50 p-4 rounded-xl border-2 border-emerald-300 shadow-sm">
+                        <span class="text-[11px] font-bold text-emerald-700 uppercase">Total Auditado Real</span>
+                        <p id="kpi-dinero-total" class="text-2xl font-black text-emerald-700 mt-1">S/ 0.00</p>
+                        <span id="kpi-regularizado-detalle" class="text-[10px] text-emerald-600 font-semibold">+ S/ 0.00 regularizado</span>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="text-lg font-bold text-red-700 mb-2">⚠️ Registro de Frascos Físicos No Registrados (Discrepancias)</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-red-50 text-red-900 border-b border-red-200">
+                                    <th class="p-3">Fecha / Hora</th>
+                                    <th class="p-3">Rotulado Manual</th>
+                                    <th class="p-3">Descripción</th>
+                                    <th class="p-3">Origen</th>
+                                    <th class="p-3">Estado Auditoría</th>
+                                    <th class="p-3">Monto Reg.</th>
+                                    <th class="p-3">Acción Gerencia</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-incidencias" class="divide-y"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
 
     <script>
         const SUPABASE_URL = 'https://uzimqtlqlaxxulizenwp.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6aW1xdGxxbGF4eHVsaXplbndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUzNjE0NjYsImV4cCI6MjExMDkzNzQ2Nn0.x2TJlGrelzVdsD0tyAms6jEVqzvnOp1RRstdXU8_B7o';
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        // Permisos de pestañas por rol (puedes ajustar a 1 o 2 pestañas por rol)
+        const PERMISOS_POR_ROL = {
+            RECEPCION: ['recepcion'],
+            MACROSCOPIA: ['macroscopia'],
+            AUDITORIA: ['auditoria', 'macroscopia']
+        };
+
+        let rolActual = null;
+        let pestanasPermitidas = [];
+
+        // Login
+        document.getElementById('form-login').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorEl = document.getElementById('login-error');
+            errorEl.classList.add('hidden');
+
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            const { data, error } = await db.auth.signInWithPassword({ email, password });
+            if (error) {
+                errorEl.innerText = 'Credenciales inválidas: ' + error.message;
+                errorEl.classList.remove('hidden');
+                return;
+            }
+            await iniciarSesionConUsuario(data.user);
+        });
+
+        async function iniciarSesionConUsuario(user) {
+            const { data: perfil, error } = await db
+                .from('perfiles_usuario')
+                .select('nombre_completo, rol')
+                .eq('id', user.id)
+                .single();
+
+            if (error || !perfil) {
+                alert('Tu usuario no tiene un rol asignado en perfiles_usuario.');
+                await db.auth.signOut();
+                return;
+            }
+
+            rolActual = perfil.rol;
+            pestanasPermitidas = PERMISOS_POR_ROL[rolActual] || [];
+
+            document.getElementById('pantalla-login').classList.add('hidden');
+            document.getElementById('app-principal').classList.remove('hidden');
+            document.getElementById('info-usuario').innerText = perfil.nombre_completo;
+            document.getElementById('info-rol').innerText = rolActual;
+
+            // Mostrar solo los botones permitidos para su rol
+            ['recepcion', 'macroscopia', 'auditoria'].forEach(tab => {
+                const btn = document.getElementById(`btn-${tab}`);
+                if (pestanasPermitidas.includes(tab)) {
+                    btn.classList.remove('hidden');
+                } else {
+                    btn.classList.add('hidden');
+                }
+            });
+
+            if (pestanasPermitidas.length > 0) {
+                cambiarTab(pestanasPermitidas[0]);
+            }
+        }
+
+        async function cerrarSesion() {
+            await db.auth.signOut();
+            rolActual = null;
+            pestanasPermitidas = [];
+            document.getElementById('app-principal').classList.add('hidden');
+            document.getElementById('pantalla-login').classList.remove('hidden');
+        }
+
+        // Mantener sesión si ya estaba logueado
+        window.addEventListener('DOMContentLoaded', async () => {
+            generarInputsFrascos();
+            const { data: { session } } = await db.auth.getSession();
+            if (session?.user) {
+                await iniciarSesionConUsuario(session.user);
+            }
+        });
+
         function cambiarTab(tab) {
+            if (!pestanasPermitidas.includes(tab)) return;
+
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(el => {
                 el.classList.remove('bg-emerald-600');
@@ -246,7 +356,6 @@
             if (tab === 'auditoria') cargarAuditoria();
         }
 
-        // Generar inputs individuales por cada frasco (Descripción + Estado Pago + Monto)
         function generarInputsFrascos() {
             const cant = parseInt(document.getElementById('cantidad_frascos').value) || 1;
             const contenedor = document.getElementById('contenedor-frascos');
@@ -295,10 +404,6 @@
             return total;
         }
 
-        // Inicializar 1 frasco al cargar
-        generarInputsFrascos();
-
-        // 1. REGISTRAR ORDEN Y FRASCOS CON VALIDACIÓN DE COBRO
         document.getElementById('form-recepcion').addEventListener('submit', async (e) => {
             e.preventDefault();
             const cant = parseInt(document.getElementById('cantidad_frascos').value);
@@ -306,10 +411,9 @@
             const estadosPago = Array.from(document.getElementsByName('estado_pago_frasco[]')).map(i => i.value);
             const montosFrasco = Array.from(document.getElementsByName('monto_frasco[]')).map(i => parseFloat(i.value) || 0);
 
-            // Bloqueo: Si un frasco está marcado como PAGADO pero tiene monto <= 0
             for (let i = 0; i < cant; i++) {
                 if (estadosPago[i] === 'PAGADO' && montosFrasco[i] <= 0) {
-                    return alert(`⚠️ Error en Frasco ${i + 1}: Está marcado como "Pagado Individual" pero tiene monto S/ 0.00. Ingrese el monto cobrado o seleccione "Incluido en Paquete / Cortesía".`);
+                    return alert(`⚠️ Error en Frasco ${i + 1}: Está marcado como "Pagado Individual" pero tiene monto S/ 0.00.`);
                 }
             }
 
@@ -361,7 +465,6 @@
             generarInputsFrascos();
         });
 
-        // 2. ESCANEO EN MACROSCOPÍA
         document.getElementById('input-escaneo').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') escanearFrasco();
         });
@@ -394,7 +497,7 @@
                 }).eq('id', frasco.id);
 
                 feedback.classList.add('bg-emerald-100', 'text-emerald-800');
-                feedback.innerHTML = `✅ <strong>VALIDADO:</strong> ${codigo} | Paciente: <strong>${frasco.ordenes_patologia.paciente_nombre}</strong> | ${frasco.descripcion_anatomica} [${frasco.estado_pago_frasco} - S/ ${Number(frasco.monto_frasco).toFixed(2)}]`;
+                feedback.innerHTML = `✅ <strong>VALIDADO:</strong> ${codigo} | Paciente: <strong>${frasco.ordenes_patologia.paciente_nombre}</strong> | ${frasco.descripcion_anatomica}`;
                 cargarPendientesMacro();
             }
             document.getElementById('input-escaneo').value = '';
@@ -413,7 +516,6 @@
                     <td class="p-2.5 font-mono font-bold">${f.codigo_frasco}</td>
                     <td class="p-2.5">${f.ordenes_patologia?.paciente_nombre || '-'}</td>
                     <td class="p-2.5">${f.descripcion_anatomica}</td>
-                    <td class="p-2.5 text-xs font-semibold">${f.estado_pago_frasco} (S/ ${Number(f.monto_frasco || 0).toFixed(2)})</td>
                     <td class="p-2.5">
                         <span class="px-2 py-1 rounded text-xs font-bold ${f.estado === 'EN_RECEPCION' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">
                             ${f.estado}
@@ -423,7 +525,6 @@
             `).join('');
         }
 
-        // REPORTAR FRASCO HUÉRFANO
         document.getElementById('form-huerfano').addEventListener('submit', async (e) => {
             e.preventDefault();
             const operador = document.getElementById('operador_macro').value.trim() || 'Turno Macroscopía';
@@ -440,7 +541,6 @@
             document.getElementById('form-huerfano').reset();
         });
 
-        // 3. CARGAR AUDITORÍA CON SEPARACIÓN DE ERROR VS. REGULARIZACIÓN
         async function cargarAuditoria() {
             const { data: frascos } = await db.from('frascos_muestra').select('estado');
             const { data: ordenes } = await db.from('ordenes_patologia').select('monto_cobrado');
@@ -506,7 +606,6 @@
 
         async function marcarComoError(id) {
             const nota = prompt('Motivo del error (Ej: Duplicado de orden B001-452, frasco de revisión sin costo):') || 'Error operativo confirmado';
-            // No modifica el dinero recaudado (monto_regularizado queda en 0)
             await db.from('incidencias_huerfanos').update({
                 estado_auditoria: 'ERROR_REGISTRO_CONFIRMADO',
                 monto_regularizado: 0,
