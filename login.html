@@ -29,7 +29,7 @@
             </div>
 
             <h2 class="text-lg font-bold text-slate-800 mb-1">Iniciar Sesión</h2>
-            <p class="text-xs text-slate-500 mb-6">Acceso restringido.</p>
+            <p class="text-xs text-slate-500 mb-6">Ingresus sus credenciales.</p>
 
             <form id="form-login" class="space-y-4">
                 <div>
@@ -68,7 +68,7 @@
             try {
                 const { data, error } = await db.auth.signInWithPassword({ email, password });
                 if (error) {
-                    throw new Error('Credenciales inválidas: ');
+                    throw new Error('Credenciales inválidas');
                 }
 
                 const { data: perfil, error: errPerfil } = await db
