@@ -539,8 +539,8 @@
                 ? ''
                 : fechaRef.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             vigenciaEl.innerText = horaTexto
-                ? `Sincronizada en tiempo real • Actualizada a las ${horaTexto} • Formato ABC-1234`
-                : 'Sincronizada en tiempo real • Formato ABC-1234';
+                ? `Sincronizada en tiempo real • Actualizada a las ${horaTexto} • `
+                : 'Sincronizada en tiempo real • ';
         }
 
         async function sincronizarClaveCortesiaDesdeDB(estricto = false) {
