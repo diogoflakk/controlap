@@ -13,9 +13,17 @@
             #area-impresion, #area-impresion * { visibility: visible; }
             #area-impresion { position: absolute; left: 0; top: 0; width: 100%; }
         }
+        input, select {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+        }
+        input[readonly] {
+            background-color: #f1f5f9 !important;
+            color: #64748b !important;
+        }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800 font-sans">
+<body class="bg-slate-100 text-slate-800 font-sans antialiased">
 
     <!-- Toast / Alerta Instantánea -->
     <div id="toast-evento" class="hidden fixed bottom-5 right-5 z-50 max-w-sm bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl border border-emerald-500/50 text-xs font-medium"></div>
@@ -25,9 +33,9 @@
          ========================================== -->
     <div id="pantalla-login" class="min-h-screen flex items-center justify-center p-4">
         <div class="bg-white w-full max-w-md p-8 rounded-2xl shadow-md border border-slate-200">
-            <div class="flex items-center space-x-3 mb-6">
-                <span class="bg-emerald-500 text-slate-900 font-bold px-2.5 py-1 rounded">AP</span>
-                <h1 class="text-xl font-bold tracking-tight">Patología<span class="text-emerald-600">Control</span></h1>
+            <div class="flex items-center space-x-2.5 mb-6">
+                <span class="bg-emerald-500 text-slate-950 font-extrabold px-2.5 py-1 rounded-md text-sm">AP</span>
+                <h1 class="text-xl font-bold tracking-tight text-slate-900">Patología<span class="text-emerald-600">Control</span></h1>
             </div>
             <h2 class="text-lg font-bold text-slate-800 mb-1">Iniciar Sesión</h2>
             <p class="text-xs text-slate-500 mb-6">Acceso restringido según rol del área.</p>
@@ -35,14 +43,14 @@
             <form id="form-login" class="space-y-4">
                 <div>
                     <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Correo Institucional</label>
-                    <input type="email" id="login-email" required class="w-full border rounded-lg p-2.5 text-sm" placeholder="usuario@laboratorio.com">
+                    <input type="email" id="login-email" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="usuario@laboratorio.com">
                 </div>
                 <div>
                     <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Contraseña</label>
-                    <input type="password" id="login-password" required class="w-full border rounded-lg p-2.5 text-sm" placeholder="••••••••">
+                    <input type="password" id="login-password" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="••••••••">
                 </div>
-                <p id="login-error" class="hidden text-xs text-red-600 font-semibold bg-red-50 p-2.5 rounded"></p>
-                <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 rounded-lg">
+                <p id="login-error" class="hidden text-xs text-red-600 font-semibold bg-red-50 p-2.5 rounded-lg border border-red-200"></p>
+                <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-lg transition">
                     Ingresar al Sistema
                 </button>
             </form>
@@ -53,28 +61,30 @@
          APLICACIÓN PRINCIPAL (OCULTA HASTA LOGIN)
          ========================================== -->
     <div id="app-principal" class="hidden">
-        <nav class="bg-slate-900 text-white px-6 py-4 shadow-md flex flex-wrap justify-between items-center gap-3">
-            <div class="flex items-center space-x-3">
-                <span class="bg-emerald-500 text-slate-900 font-bold px-2.5 py-1 rounded">AP</span>
-                <h1 class="text-xl font-bold tracking-tight">Patología<span class="text-emerald-400">Control</span></h1>
-                <span id="badge-realtime" class="flex items-center gap-1.5 text-[11px] font-mono bg-slate-800 border border-slate-700 px-2.5 py-1 rounded-full text-slate-300">
-                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                    CONECTANDO...
-                </span>
-            </div>
+        <nav class="bg-slate-900 text-white px-6 py-3 shadow-sm border-b border-slate-800 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center gap-6">
+                <div class="flex items-center space-x-2.5">
+                    <span class="bg-emerald-500 text-slate-950 font-extrabold px-2 py-1 rounded text-xs">AP</span>
+                    <span class="text-lg font-bold tracking-tight">Patología<span class="text-emerald-400">Control</span></span>
+                    <span id="badge-realtime" class="flex items-center gap-1.5 text-[11px] font-mono bg-slate-800 border border-slate-700 px-2.5 py-0.5 rounded-full text-slate-300">
+                        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                        CONECTANDO...
+                    </span>
+                </div>
 
-            <div class="flex space-x-2">
-                <button onclick="cambiarTab('recepcion')" id="btn-recepcion" class="tab-btn hidden bg-emerald-600 px-4 py-2 rounded font-medium text-sm">1. Recepción y Caja</button>
-                <button onclick="cambiarTab('macroscopia')" id="btn-macroscopia" class="tab-btn hidden bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded font-medium text-sm">2. Macroscopía (Escaneo)</button>
-                <button onclick="cambiarTab('auditoria')" id="btn-auditoria" class="tab-btn hidden bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded font-medium text-sm">3. Cuadre y Auditoría</button>
+                <div class="flex items-center gap-1.5">
+                    <button onclick="cambiarTab('recepcion')" id="btn-recepcion" class="tab-btn hidden bg-emerald-600 text-white px-3.5 py-1.5 rounded-md font-medium text-xs transition">Recepción y Caja</button>
+                    <button onclick="cambiarTab('macroscopia')" id="btn-macroscopia" class="tab-btn hidden text-slate-300 hover:text-white hover:bg-slate-800 px-3.5 py-1.5 rounded-md font-medium text-xs transition">Macroscopía</button>
+                    <button onclick="cambiarTab('auditoria')" id="btn-auditoria" class="tab-btn hidden text-slate-300 hover:text-white hover:bg-slate-800 px-3.5 py-1.5 rounded-md font-medium text-xs transition">Cuadre y Auditoría</button>
+                </div>
             </div>
 
             <div class="flex items-center space-x-3 text-xs">
-                <div class="text-right">
-                    <div id="info-usuario" class="font-bold text-white">Usuario</div>
-                    <div id="info-rol" class="text-emerald-400 font-mono uppercase">ROL</div>
+                <div class="text-right leading-tight">
+                    <div id="info-usuario" class="font-semibold text-white">Usuario</div>
+                    <div id="info-rol" class="text-emerald-400 font-mono text-[10px] uppercase">ROL</div>
                 </div>
-                <button onclick="cerrarSesion()" class="bg-red-600/90 hover:bg-red-600 text-white px-3 py-1.5 rounded font-semibold">
+                <button onclick="cerrarSesion()" class="bg-slate-800 hover:bg-red-600 text-slate-200 hover:text-white border border-slate-700 px-3 py-1.5 rounded-md font-medium transition">
                     Salir
                 </button>
             </div>
@@ -86,23 +96,23 @@
             <section id="tab-recepcion" class="tab-content hidden space-y-6">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                        <h2 class="text-lg font-bold text-slate-800 border-b pb-3 mb-4">Registro de Orden y Cobro Individual por Frasco</h2>
+                        <h2 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Registro de Orden y Cobro Individual por Frasco</h2>
                         <form id="form-recepcion" class="space-y-4">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Nombre del Paciente *</label>
-                                    <input type="text" id="paciente_nombre" required class="w-full border rounded-lg p-2.5 text-sm" placeholder="Ej: María Gómez Pérez">
+                                    <input type="text" id="paciente_nombre" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" placeholder="Ej: María Gómez Pérez">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold uppercase text-slate-500 mb-1">DNI / Documento *</label>
-                                    <input type="text" id="paciente_dni" required class="w-full border rounded-lg p-2.5 text-sm" placeholder="Ej: 45891234">
+                                    <input type="text" id="paciente_dni" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" placeholder="Ej: 45891234">
                                 </div>
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
                                 <div>
                                     <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Método de Pago *</label>
-                                    <select id="tipo_pago" required class="w-full border rounded-lg p-2.5 text-sm bg-white">
+                                    <select id="tipo_pago" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm">
                                         <option value="EFECTIVO">Efectivo</option>
                                         <option value="TARJETA">Tarjeta POS</option>
                                         <option value="TRANSFERENCIA">Transferencia / Yape / Plin</option>
@@ -112,7 +122,7 @@
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold uppercase text-slate-600 mb-1">N° Boleta / Comprobante *</label>
-                                    <input type="text" id="numero_comprobante" required class="w-full border rounded-lg p-2.5 text-sm" placeholder="Ej: B001-004521">
+                                    <input type="text" id="numero_comprobante" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" placeholder="Ej: B001-004521">
                                 </div>
                                 <div>
                                     <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Cantidad de Frascos *</label>
@@ -122,7 +132,7 @@
 
                             <div>
                                 <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Médico Remitente</label>
-                                <input type="text" id="medico_remitente" class="w-full border rounded-lg p-2.5 text-sm" placeholder="Dr. Carlos Mendoza">
+                                <input type="text" id="medico_remitente" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" placeholder="Dr. Carlos Mendoza">
                             </div>
 
                             <div id="contenedor-frascos" class="space-y-3 bg-emerald-50/60 p-4 rounded-lg border border-emerald-200"></div>
@@ -133,8 +143,8 @@
                             </div>
 
                             <div class="flex justify-between items-center pt-2">
-                                <input type="text" id="usuario_recepcion" required class="border rounded-lg p-2 text-sm w-48" placeholder="Tu nombre (Recepción)">
-                                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-lg shadow">
+                                <input type="text" id="usuario_recepcion" required class="border border-slate-300 rounded-lg p-2 text-sm w-52" placeholder="Tu nombre (Recepción)">
+                                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-2.5 rounded-lg shadow-sm transition">
                                     Registrar y Generar Etiquetas
                                 </button>
                             </div>
@@ -143,15 +153,15 @@
 
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
                         <div>
-                            <h3 class="text-lg font-bold text-slate-800 border-b pb-3 mb-4">Etiquetas de Trazabilidad</h3>
+                            <h3 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Etiquetas de Trazabilidad</h3>
                             <p class="text-xs text-slate-500 mb-4">Cada etiqueta muestra si el frasco fue pagado individualmente o incluido en paquete.</p>
                             <div id="area-impresion" class="space-y-3">
-                                <div class="text-center text-slate-400 text-sm py-10 border-2 border-dashed rounded-lg">
+                                <div class="text-center text-slate-400 text-sm py-10 border-2 border-dashed border-slate-200 rounded-lg">
                                     Registre una orden para generar los códigos por frasco.
                                 </div>
                             </div>
                         </div>
-                        <button onclick="window.print()" id="btn-imprimir" class="hidden mt-4 w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 rounded-lg">
+                        <button onclick="window.print()" id="btn-imprimir" class="hidden mt-4 w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2.5 rounded-lg transition">
                             🖨️ Imprimir Etiquetas
                         </button>
                     </div>
@@ -163,14 +173,14 @@
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse text-sm">
                             <thead>
-                                <tr class="bg-slate-100 text-slate-600 border-b">
+                                <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
                                     <th class="p-2.5">Código Frasco</th>
                                     <th class="p-2.5">Paciente</th>
                                     <th class="p-2.5">Muestra</th>
                                     <th class="p-2.5">Estado Macroscopía</th>
                                 </tr>
                             </thead>
-                            <tbody id="tabla-recepcion-vivo" class="divide-y"></tbody>
+                            <tbody id="tabla-recepcion-vivo" class="divide-y divide-slate-100"></tbody>
                         </table>
                     </div>
                 </div>
@@ -179,12 +189,12 @@
             <!-- MÓDULO 2: MACROSCOPÍA -->
             <section id="tab-macroscopia" class="tab-content hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                    <h2 class="text-lg font-bold text-slate-800 border-b pb-3 mb-4">Estación de Escaneo en Macroscopía</h2>
+                    <h2 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Estación de Escaneo en Macroscopía</h2>
                     
                     <div class="flex gap-3 mb-6">
-                        <input type="text" id="operador_macro" class="border rounded-lg p-3 text-sm w-48" placeholder="Patólogo / Tecnólogo">
+                        <input type="text" id="operador_macro" class="border border-slate-300 rounded-lg p-3 text-sm w-48" placeholder="Patólogo / Tecnólogo">
                         <input type="text" id="input-escaneo" class="flex-1 border-2 border-blue-500 rounded-lg p-3 text-lg font-mono uppercase" placeholder="Escanee o escriba código (Ej: AP-2026-XXXX-F1)">
-                        <button onclick="escanearFrasco()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 rounded-lg">Validar</button>
+                        <button onclick="escanearFrasco()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 rounded-lg transition">Validar</button>
                     </div>
 
                     <div id="feedback-escaneo" class="hidden mb-4 p-4 rounded-lg font-medium text-sm"></div>
@@ -193,14 +203,14 @@
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse text-sm">
                             <thead>
-                                <tr class="bg-slate-100 text-slate-600 border-b">
+                                <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
                                     <th class="p-2.5">Código Frasco</th>
                                     <th class="p-2.5">Paciente</th>
                                     <th class="p-2.5">Muestra</th>
                                     <th class="p-2.5">Estado</th>
                                 </tr>
                             </thead>
-                            <tbody id="tabla-pendientes-macro" class="divide-y"></tbody>
+                            <tbody id="tabla-pendientes-macro" class="divide-y divide-slate-100"></tbody>
                         </table>
                     </div>
                 </div>
@@ -215,17 +225,17 @@
                     <form id="form-huerfano" class="space-y-3">
                         <div>
                             <label class="block text-xs font-bold text-red-900 mb-1">Nombre escrito a mano en el frasco *</label>
-                            <input type="text" id="huerfano_nombre" required class="w-full border border-red-300 rounded p-2 text-sm bg-white" placeholder="Ej: Juan Perez - Frasco 3">
+                            <input type="text" id="huerfano_nombre" required class="w-full border border-red-300 rounded-lg p-2 text-sm" placeholder="Ej: Juan Perez - Frasco 3">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-red-900 mb-1">Tipo de Muestra / Envase *</label>
-                            <input type="text" id="huerfano_desc" required class="w-full border border-red-300 rounded p-2 text-sm bg-white" placeholder="Ej: Frasco chico sin boleta">
+                            <input type="text" id="huerfano_desc" required class="w-full border border-red-300 rounded-lg p-2 text-sm" placeholder="Ej: Frasco chico sin boleta">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-red-900 mb-1">¿Quién lo dejó / turno?</label>
-                            <input type="text" id="huerfano_entrego" class="w-full border border-red-300 rounded p-2 text-sm bg-white" placeholder="Ej: Enfermería / Recepción">
+                            <input type="text" id="huerfano_entrego" class="w-full border border-red-300 rounded-lg p-2 text-sm" placeholder="Ej: Enfermería / Recepción">
                         </div>
-                        <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg shadow mt-2">
+                        <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 rounded-lg shadow-sm mt-2 transition">
                             Registrar Incidencia y Bloquear
                         </button>
                     </form>
@@ -273,7 +283,7 @@
                                     <th class="p-3">Acción Gerencia</th>
                                 </tr>
                             </thead>
-                            <tbody id="tabla-incidencias" class="divide-y"></tbody>
+                            <tbody id="tabla-incidencias" class="divide-y divide-slate-100"></tbody>
                         </table>
                     </div>
                 </div>
@@ -297,6 +307,11 @@
         let canalRealtime = null;
         let toastTimeout = null;
 
+        function formatearEtiqueta(valor) {
+            if (!valor) return '';
+            return String(valor).replace(/_/g, ' - ');
+        }
+
         function mostrarToast(mensaje) {
             const toast = document.getElementById('toast-evento');
             if (!toast) return;
@@ -308,16 +323,13 @@
             }, 3500);
         }
 
-        // ==========================================
-        // SINCRONIZACIÓN EN TIEMPO REAL (TODAS LAS ÁREAS)
-        // ==========================================
         function iniciarRealtime() {
             if (canalRealtime) {
                 db.removeChannel(canalRealtime);
             }
 
             canalRealtime = db
-                .channel('patologia-realtime-sync-v2')
+                .channel('patologia-realtime-sync-v3')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'ordenes_patologia' }, (payload) => {
                     if (payload.eventType === 'INSERT') {
                         mostrarToast(`📥 Nueva orden registrada: ${payload.new.codigo_orden || ''}`);
@@ -326,7 +338,7 @@
                 })
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'frascos_muestra' }, (payload) => {
                     if (payload.eventType === 'UPDATE' && payload.new.estado === 'ESCANEADO_MACROSCOPIA') {
-                        mostrarToast(`✅ Frasco validado en macroscopía: ${payload.new.codigo_frasco}`);
+                        mostrarToast(`✅ Frasco validado en macroscopía: ${payload.new.codigo_frasco} (${formatearEtiqueta(payload.new.estado)})`);
                     }
                     refrescarAreasActivas();
                 })
@@ -334,7 +346,7 @@
                     if (payload.eventType === 'INSERT') {
                         mostrarToast(`🚨 Frasco sin código reportado: ${payload.new.nombre_etiqueta_manual}`);
                     } else if (payload.eventType === 'UPDATE') {
-                        mostrarToast(`⚖️ Incidencia actualizada: ${payload.new.estado_auditoria}`);
+                        mostrarToast(`⚖️ Incidencia actualizada: ${formatearEtiqueta(payload.new.estado_auditoria)}`);
                     }
                     refrescarAreasActivas();
                 })
@@ -342,10 +354,10 @@
                     const badge = document.getElementById('badge-realtime');
                     if (!badge) return;
                     if (status === 'SUBSCRIBED') {
-                        badge.className = 'flex items-center gap-1.5 text-[11px] font-mono bg-emerald-950 border border-emerald-600 px-2.5 py-1 rounded-full text-emerald-300';
+                        badge.className = 'flex items-center gap-1.5 text-[11px] font-mono bg-emerald-950 border border-emerald-600 px-2.5 py-0.5 rounded-full text-emerald-300';
                         badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span>EN VIVO`;
                     } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-                        badge.className = 'flex items-center gap-1.5 text-[11px] font-mono bg-red-950 border border-red-600 px-2.5 py-1 rounded-full text-red-300';
+                        badge.className = 'flex items-center gap-1.5 text-[11px] font-mono bg-red-950 border border-red-600 px-2.5 py-0.5 rounded-full text-red-300';
                         badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-400"></span>SIN REALTIME`;
                     }
                 });
@@ -363,7 +375,6 @@
             }
         }
 
-        // Login
         document.getElementById('form-login').addEventListener('submit', async (e) => {
             e.preventDefault();
             const errorEl = document.getElementById('login-error');
@@ -444,12 +455,13 @@
 
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(el => {
-                el.classList.remove('bg-emerald-600');
-                el.classList.add('bg-slate-700');
+                el.classList.remove('bg-emerald-600', 'text-white');
+                el.classList.add('text-slate-300', 'hover:text-white', 'hover:bg-slate-800');
             });
             document.getElementById(`tab-${tab}`).classList.remove('hidden');
-            document.getElementById(`btn-${tab}`).classList.remove('bg-slate-700');
-            document.getElementById(`btn-${tab}`).classList.add('bg-emerald-600');
+            const activeBtn = document.getElementById(`btn-${tab}`);
+            activeBtn.classList.remove('text-slate-300', 'hover:text-white', 'hover:bg-slate-800');
+            activeBtn.classList.add('bg-emerald-600', 'text-white');
 
             if (tab === 'recepcion') cargarRecepcionVivo();
             if (tab === 'macroscopia') cargarPendientesMacro();
@@ -463,19 +475,19 @@
             
             for (let i = 1; i <= cant; i++) {
                 contenedor.innerHTML += `
-                    <div class="grid grid-cols-1 md:grid-cols-12 gap-2 bg-white p-2.5 rounded border border-emerald-200 items-center">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-2 bg-white p-2.5 rounded-lg border border-emerald-200 items-center">
                         <div class="md:col-span-5">
-                            <input type="text" name="desc_frasco[]" required class="w-full border rounded p-2 text-sm" placeholder="Frasco ${i}: Muestra anatómica">
+                            <input type="text" name="desc_frasco[]" required class="w-full border border-slate-300 rounded-md p-2 text-sm" placeholder="Frasco ${i}: Muestra anatómica">
                         </div>
                         <div class="md:col-span-4">
-                            <select name="estado_pago_frasco[]" onchange="actualizarTotalOrden()" class="w-full border rounded p-2 text-xs font-semibold bg-slate-50">
+                            <select name="estado_pago_frasco[]" onchange="actualizarTotalOrden()" class="w-full border border-slate-300 rounded-md p-2 text-xs font-semibold">
                                 <option value="PAGADO">💰 Pagado Individual</option>
                                 <option value="INCLUIDO_PAQUETE">📦 Incluido en Paquete (S/ 0)</option>
                                 <option value="CORTESIA_AUTORIZADA">🎟️ Cortesía Autorizada (S/ 0)</option>
                             </select>
                         </div>
                         <div class="md:col-span-3">
-                            <input type="number" step="0.01" min="0" name="monto_frasco[]" oninput="actualizarTotalOrden()" required class="w-full border rounded p-2 text-sm font-mono text-right" placeholder="S/ 0.00">
+                            <input type="number" step="0.01" min="0" name="monto_frasco[]" oninput="actualizarTotalOrden()" required class="w-full border border-slate-300 rounded-md p-2 text-sm font-mono text-right" placeholder="S/ 0.00">
                         </div>
                     </div>
                 `;
@@ -492,10 +504,8 @@
                 if (estados[idx].value !== 'PAGADO') {
                     input.value = '0.00';
                     input.readOnly = true;
-                    input.classList.add('bg-slate-100', 'text-slate-400');
                 } else {
                     input.readOnly = false;
-                    input.classList.remove('bg-slate-100', 'text-slate-400');
                     total += parseFloat(input.value) || 0;
                 }
             });
@@ -547,7 +557,7 @@
 
             const areaImpresion = document.getElementById('area-impresion');
             areaImpresion.innerHTML = frascosCreados.map((f, i) => `
-                <div class="border-2 border-slate-900 p-3 rounded bg-white text-xs font-mono">
+                <div class="border-2 border-slate-900 p-3 rounded-lg bg-white text-xs font-mono">
                     <div class="flex justify-between font-bold border-b border-slate-300 pb-1 mb-1">
                         <span>${f.codigo_frasco}</span>
                         <span>FRASCO ${i + 1}/${cant}</span>
@@ -555,7 +565,7 @@
                     <p class="font-bold text-sm uppercase">${orden.paciente_nombre}</p>
                     <p class="text-slate-700">${f.descripcion_anatomica}</p>
                     <p class="text-[10px] font-bold mt-1 ${f.estado_pago_frasco === 'PAGADO' ? 'text-emerald-700' : 'text-amber-700'}">
-                        ${f.estado_pago_frasco} (S/ ${Number(f.monto_frasco).toFixed(2)}) | Comp: ${orden.numero_comprobante}
+                        ${formatearEtiqueta(f.estado_pago_frasco)} (S/ ${Number(f.monto_frasco).toFixed(2)}) | Comp: ${orden.numero_comprobante}
                     </p>
                 </div>
             `).join('');
@@ -576,12 +586,12 @@
             if (!tbody) return;
             tbody.innerHTML = (data || []).map(f => `
                 <tr>
-                    <td class="p-2.5 font-mono font-bold">${f.codigo_frasco}</td>
+                    <td class="p-2.5 font-mono font-bold text-slate-800">${f.codigo_frasco}</td>
                     <td class="p-2.5">${f.ordenes_patologia?.paciente_nombre || '-'}</td>
                     <td class="p-2.5">${f.descripcion_anatomica}</td>
                     <td class="p-2.5">
-                        <span class="px-2 py-1 rounded text-xs font-bold ${f.estado === 'EN_RECEPCION' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">
-                            ${f.estado}
+                        <span class="px-2.5 py-1 rounded-md text-xs font-bold ${f.estado === 'EN_RECEPCION' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">
+                            ${formatearEtiqueta(f.estado)}
                         </span>
                     </td>
                 </tr>
@@ -611,7 +621,7 @@
                 feedback.innerHTML = `❌ <strong>CÓDIGO INEXISTENTE (${codigo}):</strong> Este frasco NO está registrado en caja. Repórtelo en el panel rojo de la derecha.`;
             } else if (frasco.estado !== 'EN_RECEPCION') {
                 feedback.classList.add('bg-amber-100', 'text-amber-800');
-                feedback.innerHTML = `⚠️ <strong>DOBLE ESCANEO:</strong> El frasco ${codigo} (${frasco.ordenes_patologia.paciente_nombre}) ya fue escaneado previamente.`;
+                feedback.innerHTML = `⚠️ <strong>DOBLE ESCANEO:</strong> El frasco ${codigo} (${frasco.ordenes_patologia.paciente_nombre}) ya figura como ${formatearEtiqueta(frasco.estado)}.`;
             } else {
                 await db.from('frascos_muestra').update({
                     estado: 'ESCANEADO_MACROSCOPIA',
@@ -620,7 +630,7 @@
                 }).eq('id', frasco.id);
 
                 feedback.classList.add('bg-emerald-100', 'text-emerald-800');
-                feedback.innerHTML = `✅ <strong>VALIDADO:</strong> ${codigo} | Paciente: <strong>${frasco.ordenes_patologia.paciente_nombre}</strong> | ${frasco.descripcion_anatomica}`;
+                feedback.innerHTML = `✅ <strong>VALIDADO (ESCANEADO - MACROSCOPIA):</strong> ${codigo} | Paciente: <strong>${frasco.ordenes_patologia.paciente_nombre}</strong> | ${frasco.descripcion_anatomica}`;
             }
             document.getElementById('input-escaneo').value = '';
         }
@@ -636,12 +646,12 @@
             if (!tbody) return;
             tbody.innerHTML = (data || []).map(f => `
                 <tr>
-                    <td class="p-2.5 font-mono font-bold">${f.codigo_frasco}</td>
+                    <td class="p-2.5 font-mono font-bold text-slate-800">${f.codigo_frasco}</td>
                     <td class="p-2.5">${f.ordenes_patologia?.paciente_nombre || '-'}</td>
                     <td class="p-2.5">${f.descripcion_anatomica}</td>
                     <td class="p-2.5">
-                        <span class="px-2 py-1 rounded text-xs font-bold ${f.estado === 'EN_RECEPCION' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">
-                            ${f.estado}
+                        <span class="px-2.5 py-1 rounded-md text-xs font-bold ${f.estado === 'EN_RECEPCION' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}">
+                            ${formatearEtiqueta(f.estado)}
                         </span>
                     </td>
                 </tr>
@@ -695,8 +705,8 @@
                     <td class="p-3">${inc.descripcion_muestra}</td>
                     <td class="p-3">${inc.quien_entrego || 'No especificado'}</td>
                     <td class="p-3">
-                        <span class="px-2 py-1 rounded text-xs font-bold ${inc.estado_auditoria === 'PENDIENTE_REGULARIZAR' ? 'bg-red-100 text-red-700' : (inc.estado_auditoria === 'REGULARIZADO_PAGO' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-700')}">
-                            ${inc.estado_auditoria}
+                        <span class="px-2.5 py-1 rounded-md text-xs font-bold ${inc.estado_auditoria === 'PENDIENTE_REGULARIZAR' ? 'bg-red-100 text-red-700' : (inc.estado_auditoria === 'REGULARIZADO_PAGO' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-700')}">
+                            ${formatearEtiqueta(inc.estado_auditoria)}
                         </span>
                     </td>
                     <td class="p-3 font-mono font-bold text-xs">
@@ -704,8 +714,8 @@
                     </td>
                     <td class="p-3">
                         ${inc.estado_auditoria === 'PENDIENTE_REGULARIZAR' ? `
-                            <button onclick="regularizarConPago('${inc.id}')" class="text-xs bg-emerald-600 text-white px-2 py-1 rounded mr-1">Regularizó Pago</button>
-                            <button onclick="marcarComoError('${inc.id}')" class="text-xs bg-slate-600 text-white px-2 py-1 rounded">Fue Error</button>
+                            <button onclick="regularizarConPago('${inc.id}')" class="text-xs bg-emerald-600 text-white px-2.5 py-1 rounded-md mr-1">Regularizó Pago</button>
+                            <button onclick="marcarComoError('${inc.id}')" class="text-xs bg-slate-600 text-white px-2.5 py-1 rounded-md">Fue Error</button>
                         ` : 'Cerrado'}
                     </td>
                 </tr>
