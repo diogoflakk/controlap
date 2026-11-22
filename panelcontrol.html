@@ -160,7 +160,18 @@
 
                 <!-- Monitor en Vivo para Recepción -->
                 <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200">
-                    <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-600 mb-3">Estado en Vivo de Frascos Registrados</h3>
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5 mb-3">
+                        <div>
+                            <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-600">Estado en Vivo de Frascos Registrados</h3>
+                            <p id="subtitulo-fecha-recepcion" class="text-[11px] text-slate-500">Mostrando registros del día de hoy • Orden: más antiguo al más nuevo</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="date" id="filtro-fecha-recepcion" onchange="cargarRecepcionVivo()" class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold">
+                            <button type="button" onclick="establecerHoyRecepcion()" class="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition">
+                                Hoy
+                            </button>
+                        </div>
+                    </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[540px]">
                             <thead>
@@ -320,9 +331,18 @@
                 <!-- Apartado Independiente: Estado en Vivo de Frascos Registrados (Gerencia) -->
                 <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200">
                     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3">
-                        <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-700">Estado en Vivo de Frascos Registrados — Gerencia</h3>
-                        <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                            <input type="text" id="filtro-texto-gerencia" oninput="cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia')" class="border border-slate-300 rounded-lg px-3 py-2 sm:py-1.5 text-xs w-full sm:w-64" placeholder="Buscar por boleta, médico, paciente o código...">
+                        <div>
+                            <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-700">Estado en Vivo de Frascos Registrados — Gerencia</h3>
+                            <p id="subtitulo-fecha-gerencia" class="text-[11px] text-slate-500">Mostrando registros del día de hoy • Orden: más antiguo al más nuevo</p>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-wrap">
+                            <div class="flex items-center gap-1.5">
+                                <input type="date" id="filtro-fecha-gerencia" onchange="cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia')" class="border border-slate-300 rounded-lg px-2.5 py-2 sm:py-1.5 text-xs font-semibold">
+                                <button type="button" onclick="establecerHoyGerencia()" class="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-lg px-2.5 py-2 sm:py-1.5 text-xs font-semibold transition shrink-0">
+                                    Hoy
+                                </button>
+                            </div>
+                            <input type="text" id="filtro-texto-gerencia" oninput="cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia')" class="border border-slate-300 rounded-lg px-3 py-2 sm:py-1.5 text-xs w-full sm:w-56" placeholder="Buscar por boleta, médico, paciente o código...">
                             <select id="filtro-estado-gerencia" onchange="cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia')" class="border border-slate-300 rounded-lg px-2.5 py-2 sm:py-1.5 text-xs font-semibold w-full sm:w-auto">
                                 <option value="TODOS">Todos los estados</option>
                                 <option value="EN_RECEPCION">EN - RECEPCION</option>
@@ -375,6 +395,72 @@
         let contextoReporteFrasco = null;
         let claveCortesiaActiva = null;
         let claveActualizadaEn = null;
+
+        function obtenerFechaLocalYYYYMMDD(fecha = new Date()) {
+            const year = fecha.getFullYear();
+            const month = String(fecha.getMonth() + 1).padStart(2, '0');
+            const day = String(fecha.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function obtenerRangoDiaLocalISO(fechaYYYYMMDD) {
+            const base = fechaYYYYMMDD || obtenerFechaLocalYYYYMMDD();
+            const [y, m, d] = base.split('-').map(Number);
+            const inicioLocal = new Date(y, (m || 1) - 1, d || 1, 0, 0, 0, 0);
+            const finLocal = new Date(y, (m || 1) - 1, d || 1, 23, 59, 59, 999);
+            return {
+                fecha: base,
+                inicioISO: inicioLocal.toISOString(),
+                finISO: finLocal.toISOString()
+            };
+        }
+
+        function formatearFechaLegible(fechaYYYYMMDD) {
+            const hoy = obtenerFechaLocalYYYYMMDD();
+            if (!fechaYYYYMMDD || fechaYYYYMMDD === hoy) {
+                return 'el día de hoy';
+            }
+            const [y, m, d] = fechaYYYYMMDD.split('-').map(Number);
+            const dt = new Date(y, (m || 1) - 1, d || 1);
+            if (Number.isNaN(dt.getTime())) return fechaYYYYMMDD;
+            return `del ${dt.toLocaleDateString()}`;
+        }
+
+        function inicializarFiltrosFechaEstadoVivo() {
+            const hoy = obtenerFechaLocalYYYYMMDD();
+            const inputRec = document.getElementById('filtro-fecha-recepcion');
+            const inputGer = document.getElementById('filtro-fecha-gerencia');
+            if (inputRec && !inputRec.value) inputRec.value = hoy;
+            if (inputGer && !inputGer.value) inputGer.value = hoy;
+        }
+
+        function establecerHoyRecepcion() {
+            const inputRec = document.getElementById('filtro-fecha-recepcion');
+            if (inputRec) inputRec.value = obtenerFechaLocalYYYYMMDD();
+            cargarRecepcionVivo();
+        }
+
+        function establecerHoyGerencia() {
+            const inputGer = document.getElementById('filtro-fecha-gerencia');
+            if (inputGer) inputGer.value = obtenerFechaLocalYYYYMMDD();
+            cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia');
+        }
+
+        function obtenerFechaRegistroFrasco(frasco) {
+            const raw = frasco.fecha_creacion || frasco.created_at || frasco.ordenes_patologia?.fecha_creacion || frasco.ordenes_patologia?.created_at;
+            if (!raw) return null;
+            const dt = new Date(raw);
+            return Number.isNaN(dt.getTime()) ? null : dt;
+        }
+
+        function perteneceAFechaSeleccionada(frasco, fechaYYYYMMDD) {
+            const dt = obtenerFechaRegistroFrasco(frasco);
+            if (!dt) {
+                // Respaldo si la tabla no tiene columna de fecha: tomar los registros del día si aplica
+                return fechaYYYYMMDD === obtenerFechaLocalYYYYMMDD();
+            }
+            return obtenerFechaLocalYYYYMMDD(dt) === fechaYYYYMMDD;
+        }
 
         function normalizarClaveCortesia(clave) {
             return String(clave || '')
@@ -624,7 +710,7 @@
             }
 
             canalRealtime = db
-                .channel('patologia-realtime-sync-v7')
+                .channel('patologia-realtime-sync-v8')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'configuracion_cortesia' }, (payload) => {
                     const nuevaClave = payload.new?.clave_activa;
                     if (esFormatoClaveCortesiaValido(nuevaClave)) {
@@ -720,6 +806,7 @@
                 }
             });
 
+            inicializarFiltrosFechaEstadoVivo();
             await sincronizarClaveCortesiaDesdeDB(false);
             iniciarRealtime();
             refrescarAreasActivas();
@@ -741,6 +828,7 @@
 
         window.addEventListener('DOMContentLoaded', async () => {
             generarInputsFrascos();
+            inicializarFiltrosFechaEstadoVivo();
             const { data: { session } } = await db.auth.getSession();
             if (!session?.user) {
                 window.location.href = 'login.html';
@@ -1003,15 +1091,33 @@
         });
 
         async function cargarRecepcionVivo() {
+            const fechaSel = document.getElementById('filtro-fecha-recepcion')?.value || obtenerFechaLocalYYYYMMDD();
+            const subtitulo = document.getElementById('subtitulo-fecha-recepcion');
+            if (subtitulo) {
+                subtitulo.innerText = `Mostrando registros de ${formatearFechaLegible(fechaSel)} • Orden: más antiguo al más nuevo`;
+            }
+
             const { data } = await db
                 .from('frascos_muestra')
                 .select('*, ordenes_patologia(paciente_nombre, usuario_recepcion)')
-                .order('id', { ascending: false })
-                .limit(15);
+                .order('id', { ascending: true })
+                .limit(200);
+
+            const filtrados = (data || []).filter(f => perteneceAFechaSeleccionada(f, fechaSel));
 
             const tbody = document.getElementById('tabla-recepcion-vivo');
             if (!tbody) return;
-            tbody.innerHTML = (data || []).map(f => {
+
+            if (filtrados.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="p-4 text-center text-xs text-slate-400">No hay frascos registrados para ${formatearFechaLegible(fechaSel)}.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtrados.map(f => {
                 const badgeClass = obtenerClaseEstadoFrasco(f.estado);
                 return `
                 <tr>
@@ -1033,16 +1139,23 @@
             const tbody = document.getElementById(tbodyId);
             if (!tbody) return;
 
+            const fechaSel = document.getElementById(`filtro-fecha-${prefijoFiltro}`)?.value || obtenerFechaLocalYYYYMMDD();
+            const subtitulo = document.getElementById(`subtitulo-fecha-${prefijoFiltro}`);
+            if (subtitulo) {
+                subtitulo.innerText = `Mostrando registros de ${formatearFechaLegible(fechaSel)} • Orden: más antiguo al más nuevo`;
+            }
+
             const texto = (document.getElementById(`filtro-texto-${prefijoFiltro}`)?.value || '').trim().toLowerCase();
             const estado = document.getElementById(`filtro-estado-${prefijoFiltro}`)?.value || 'TODOS';
 
             const { data } = await db
                 .from('frascos_muestra')
                 .select('*, ordenes_patologia(paciente_nombre, numero_comprobante, medico_remitente, usuario_recepcion)')
-                .order('id', { ascending: false })
-                .limit(60);
+                .order('id', { ascending: true })
+                .limit(200);
 
             const filtrados = (data || []).filter(f => {
+                if (!perteneceAFechaSeleccionada(f, fechaSel)) return false;
                 if (estado !== 'TODOS' && f.estado !== estado) return false;
                 if (!texto) return true;
 
@@ -1062,13 +1175,13 @@
             if (filtrados.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7" class="p-4 text-center text-xs text-slate-400">No hay registros que coincidan con el filtro aplicado.</td>
+                        <td colspan="7" class="p-4 text-center text-xs text-slate-400">No hay registros que coincidan con la fecha o filtros aplicados.</td>
                     </tr>
                 `;
                 return;
             }
 
-            tbody.innerHTML = filtrados.slice(0, 25).map(f => {
+            tbody.innerHTML = filtrados.map(f => {
                 const ord = f.ordenes_patologia || {};
                 const badgeClass = obtenerClaseEstadoFrasco(f.estado);
 
@@ -1442,36 +1555,4 @@
                 comprobante_regularizacion: comp
             }).eq('id', id);
 
-            await marcarFrascoComoRegularizadoEscaneado(
-                `${inc?.nombre_etiqueta_manual || ''} ${inc?.descripcion_muestra || ''}`,
-                document.getElementById('info-usuario')?.innerText || 'Gerencia'
-            );
-
-            refrescarAreasActivas();
-        }
-
-        async function marcarComoError(id) {
-            const nota = prompt('Motivo del error (Ej: Duplicado de orden B001-452, frasco de revisión sin costo):') || 'Error operativo confirmado';
-
-            const { data: inc } = await db
-                .from('incidencias_huerfanos')
-                .select('nombre_etiqueta_manual, descripcion_muestra')
-                .eq('id', id)
-                .single();
-
-            await db.from('incidencias_huerfanos').update({
-                estado_auditoria: 'ERROR_REGISTRO_CONFIRMADO',
-                monto_regularizado: 0,
-                notas_gerencia: nota
-            }).eq('id', id);
-
-            await marcarFrascoComoRegularizadoEscaneado(
-                `${inc?.nombre_etiqueta_manual || ''} ${inc?.descripcion_muestra || ''}`,
-                document.getElementById('info-usuario')?.innerText || 'Gerencia'
-            );
-
-            refrescarAreasActivas();
-        }
-    </script>
-</body>
-</html>
+            await marcar
