@@ -300,7 +300,7 @@
             }
 
             canalRealtime = db
-                .channel('patologia-realtime-sync-v4')
+                .channel('patologia-realtime-sync-v5')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'ordenes_patologia' }, (payload) => {
                     if (payload.eventType === 'INSERT') {
                         mostrarToast(`📥 Nueva orden registrada: ${payload.new.codigo_orden || ''}`);
