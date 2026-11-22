@@ -1555,4 +1555,36 @@
                 comprobante_regularizacion: comp
             }).eq('id', id);
 
-            await marcar
+            await marcarFrascoComoRegularizadoEscaneado(
+                `${inc?.nombre_etiqueta_manual || ''} ${inc?.descripcion_muestra || ''}`,
+                document.getElementById('info-usuario')?.innerText || 'Gerencia'
+            );
+
+            refrescarAreasActivas();
+        }
+
+        async function marcarComoError(id) {
+            const nota = prompt('Motivo del error (Ej: Duplicado de orden B001-452, frasco de revisión sin costo):') || 'Error operativo confirmado';
+
+            const { data: inc } = await db
+                .from('incidencias_huerfanos')
+                .select('nombre_etiqueta_manual, descripcion_muestra')
+                .eq('id', id)
+                .single();
+
+            await db.from('incidencias_huerfanos').update({
+                estado_auditoria: 'ERROR_REGISTRO_CONFIRMADO',
+                monto_regularizado: 0,
+                notas_gerencia: nota
+            }).eq('id', id);
+
+            await marcarFrascoComoRegularizadoEscaneado(
+                `${inc?.nombre_etiqueta_manual || ''} ${inc?.descripcion_muestra || ''}`,
+                document.getElementById('info-usuario')?.innerText || 'Gerencia'
+            );
+
+            refrescarAreasActivas();
+        }
+    </script>
+</body>
+</html>
