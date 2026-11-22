@@ -828,4 +828,650 @@
         }
 
         function actualizarTotalOrden() {
-            const estados = Array.from(document.getElementsBy
+            const estados = Array.from(document.getElementsByName('estado_pago_frasco[]'));
+            const montos = Array.from(document.getElementsByName('monto_frasco[]'));
+            let total = 0;
+
+            montos.forEach((input, idx) => {
+                if (estados[idx].value !== 'PAGADO') {
+                    input.value = '0.00';
+                    input.readOnly = true;
+                } else {
+                    input.readOnly = false;
+                    total += parseFloat(input.value) || 0;
+                }
+            });
+
+            document.getElementById('total-orden-preview').innerText = `S/ ${total.toFixed(2)}`;
+            return total;
+        }
+
+        function renderizarEtiquetas(frascos, ordenBase = null) {
+            const areaImpresion = document.getElementById('area-impresion');
+            const total = frascos.length;
+
+            areaImpresion.innerHTML = frascos.map((f, i) => {
+                const ord = f.ordenes_patologia || ordenBase || {};
+                const matchNum = f.codigo_frasco.match(/-F(\d+)$/i);
+                const etiquetaFrasco = matchNum ? `FRASCO ${matchNum[1]}` : `FRASCO ${i + 1}/${total}`;
+
+                return `
+                    <div class="border-2 border-slate-900 p-3 rounded-lg bg-white text-xs font-mono">
+                        <div class="flex justify-between font-bold border-b border-slate-300 pb-1 mb-1">
+                            <span>${f.codigo_frasco}</span>
+                            <span>${etiquetaFrasco}</span>
+                        </div>
+                        <p class="font-bold text-sm uppercase truncate">${ord.paciente_nombre || 'PACIENTE'}</p>
+                        <p class="text-slate-700 truncate">${f.descripcion_anatomica}</p>
+                        <p class="text-[10px] font-bold mt-1 mb-2 text-emerald-700">
+                            ${formatearEtiqueta(f.estado_pago_frasco)} | Comp: ${ord.numero_comprobante || '-'}
+                        </p>
+                        <div class="flex justify-center pt-1 border-t border-slate-200 overflow-x-auto bg-white">
+                            <canvas id="barcode-frasco-${i}" class="h-12"></canvas>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            frascos.forEach((f, i) => {
+                const barcodeEl = document.getElementById(`barcode-frasco-${i}`);
+                if (barcodeEl && window.JsBarcode) {
+                    JsBarcode(barcodeEl, f.codigo_frasco, {
+                        format: 'CODE128',
+                        width: 2.2,
+                        height: 46,
+                        displayValue: false,
+                        margin: 10,
+                        background: '#ffffff',
+                        lineColor: '#000000'
+                    });
+                }
+            });
+
+            document.getElementById('btn-imprimir').classList.remove('hidden');
+        }
+
+        async function buscarEtiquetasRegistradas() {
+            const termino = document.getElementById('buscar-etiqueta').value.trim();
+            const areaImpresion = document.getElementById('area-impresion');
+            if (!termino) return;
+
+            areaImpresion.innerHTML = `<div class="text-center text-slate-400 text-xs py-6">Buscando etiquetas...</div>`;
+
+            const upper = termino.toUpperCase();
+
+            const { data: ordenesMatch, error: errOrdenes } = await db
+                .from('ordenes_patologia')
+                .select('id')
+                .or(`codigo_orden.ilike.%${upper}%,paciente_dni.ilike.%${termino}%,paciente_nombre.ilike.%${termino}%`)
+                .limit(20);
+
+            if (errOrdenes) {
+                areaImpresion.innerHTML = `<div class="text-center text-red-600 text-xs py-6">Error al buscar órdenes: ${errOrdenes.message}</div>`;
+                return;
+            }
+
+            const ordenIds = (ordenesMatch || []).map(o => o.id);
+
+            let queryFrascos = db
+                .from('frascos_muestra')
+                .select('*, ordenes_patologia(paciente_nombre, paciente_dni, codigo_orden, numero_comprobante)');
+
+            if (ordenIds.length > 0) {
+                queryFrascos = queryFrascos.or(`codigo_frasco.ilike.%${upper}%,orden_id.in.(${ordenIds.join(',')})`);
+            } else {
+                queryFrascos = queryFrascos.ilike('codigo_frasco', `%${upper}%`);
+            }
+
+            const { data: encontrados, error: errBuscar } = await queryFrascos
+                .order('id', { ascending: true })
+                .limit(20);
+
+            if (errBuscar) {
+                areaImpresion.innerHTML = `<div class="text-center text-red-600 text-xs py-6">Error al buscar: ${errBuscar.message}</div>`;
+                return;
+            }
+
+            if (!encontrados || encontrados.length === 0) {
+                areaImpresion.innerHTML = `<div class="text-center text-slate-400 text-xs py-6 border-2 border-dashed border-slate-200 rounded-lg">No se encontraron frascos para "${termino}".</div>`;
+                document.getElementById('btn-imprimir').classList.add('hidden');
+                return;
+            }
+
+            renderizarEtiquetas(encontrados);
+        }
+
+        document.getElementById('form-recepcion').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const cant = parseInt(document.getElementById('cantidad_frascos').value);
+            const descripciones = Array.from(document.getElementsByName('desc_frasco[]')).map(i => i.value);
+            const estadosPago = Array.from(document.getElementsByName('estado_pago_frasco[]')).map(i => i.value);
+            const montosFrasco = Array.from(document.getElementsByName('monto_frasco[]')).map(i => parseFloat(i.value) || 0);
+            const clavesCortesia = Array.from(document.getElementsByName('clave_cortesia[]')).map(i => normalizarClaveCortesia(i.value));
+
+            const requiereCortesia = estadosPago.some(est => est === 'CORTESIA_AUTORIZADA');
+            let claveVigente = null;
+
+            if (requiereCortesia) {
+                try {
+                    claveVigente = await sincronizarClaveCortesiaDesdeDB(true);
+                } catch (errClave) {
+                    return alert(`⚠️ No se pudo verificar la clave de cortesía en Supabase: ${errClave.message}`);
+                }
+            }
+
+            for (let i = 0; i < cant; i++) {
+                if (estadosPago[i] === 'PAGADO' && montosFrasco[i] <= 0) {
+                    return alert(`⚠️ Error en Frasco ${i + 1}: Está marcado como "Pagado Individual" pero tiene monto S/ 0.00.`);
+                }
+                if (estadosPago[i] === 'CORTESIA_AUTORIZADA' && clavesCortesia[i] !== claveVigente) {
+                    return alert(`🔐 Clave de cortesía incorrecta en Frasco ${i + 1}. Ingresaste "${clavesCortesia[i] || '(vacío)'}". Solicita la clave vigente en Gerencia/Auditoría.`);
+                }
+            }
+
+            const totalOrden = actualizarTotalOrden();
+            const correlativo = `AP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+            const { data: orden, error } = await db.from('ordenes_patologia').insert([{
+                codigo_orden: correlativo,
+                paciente_nombre: document.getElementById('paciente_nombre').value,
+                paciente_dni: document.getElementById('paciente_dni').value,
+                medico_remitente: document.getElementById('medico_remitente').value,
+                tipo_pago: document.getElementById('tipo_pago').value,
+                numero_comprobante: document.getElementById('numero_comprobante').value,
+                monto_cobrado: totalOrden,
+                cantidad_frascos_declarados: cant,
+                usuario_recepcion: document.getElementById('usuario_recepcion').value
+            }]).select().single();
+
+            if (error) return alert('Error al registrar orden: ' + error.message);
+
+            const frascosInsert = descripciones.map((desc, idx) => ({
+                orden_id: orden.id,
+                codigo_frasco: `${correlativo}-F${idx + 1}`,
+                descripcion_anatomica: desc,
+                estado_pago_frasco: estadosPago[idx],
+                monto_frasco: montosFrasco[idx]
+            }));
+
+            const { data: frascosCreados, error: errFrascos } = await db.from('frascos_muestra').insert(frascosInsert).select();
+            if (errFrascos) return alert('Error al registrar frascos: ' + errFrascos.message);
+
+            renderizarEtiquetas(frascosCreados, orden);
+            document.getElementById('form-recepcion').reset();
+            generarInputsFrascos();
+        });
+
+        async function cargarRecepcionVivo() {
+            const { data } = await db
+                .from('frascos_muestra')
+                .select('*, ordenes_patologia(paciente_nombre, usuario_recepcion)')
+                .order('id', { ascending: false })
+                .limit(15);
+
+            const tbody = document.getElementById('tabla-recepcion-vivo');
+            if (!tbody) return;
+            tbody.innerHTML = (data || []).map(f => {
+                const badgeClass = obtenerClaseEstadoFrasco(f.estado);
+                return `
+                <tr>
+                    <td class="p-2 sm:p-2.5 font-mono font-bold text-slate-800">${f.codigo_frasco}</td>
+                    <td class="p-2 sm:p-2.5">${f.ordenes_patologia?.paciente_nombre || '-'}</td>
+                    <td class="p-2 sm:p-2.5">${f.descripcion_anatomica}</td>
+                    <td class="p-2 sm:p-2.5 text-slate-700 font-medium">${formatearRegistradoPor(f.ordenes_patologia?.usuario_recepcion)}</td>
+                    <td class="p-2 sm:p-2.5">
+                        <span class="px-2 py-1 rounded-md text-[11px] sm:text-xs font-bold ${badgeClass}">
+                            ${formatearEtiqueta(f.estado)}
+                        </span>
+                    </td>
+                </tr>
+            `;
+            }).join('');
+        }
+
+        async function cargarFrascosDetallados(tbodyId, prefijoFiltro = 'gerencia') {
+            const tbody = document.getElementById(tbodyId);
+            if (!tbody) return;
+
+            const texto = (document.getElementById(`filtro-texto-${prefijoFiltro}`)?.value || '').trim().toLowerCase();
+            const estado = document.getElementById(`filtro-estado-${prefijoFiltro}`)?.value || 'TODOS';
+
+            const { data } = await db
+                .from('frascos_muestra')
+                .select('*, ordenes_patologia(paciente_nombre, numero_comprobante, medico_remitente, usuario_recepcion)')
+                .order('id', { ascending: false })
+                .limit(60);
+
+            const filtrados = (data || []).filter(f => {
+                if (estado !== 'TODOS' && f.estado !== estado) return false;
+                if (!texto) return true;
+
+                const ord = f.ordenes_patologia || {};
+                const campos = [
+                    f.codigo_frasco,
+                    ord.paciente_nombre,
+                    f.descripcion_anatomica,
+                    ord.numero_comprobante,
+                    ord.medico_remitente,
+                    ord.usuario_recepcion
+                ].map(v => String(v || '').toLowerCase());
+
+                return campos.some(c => c.includes(texto));
+            });
+
+            if (filtrados.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="p-4 text-center text-xs text-slate-400">No hay registros que coincidan con el filtro aplicado.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtrados.slice(0, 25).map(f => {
+                const ord = f.ordenes_patologia || {};
+                const badgeClass = obtenerClaseEstadoFrasco(f.estado);
+
+                return `
+                <tr>
+                    <td class="p-2 sm:p-2.5 font-mono font-bold text-slate-800">${f.codigo_frasco}</td>
+                    <td class="p-2 sm:p-2.5">${ord.paciente_nombre || '-'}</td>
+                    <td class="p-2 sm:p-2.5">${f.descripcion_anatomica}</td>
+                    <td class="p-2 sm:p-2.5 font-mono text-xs font-semibold text-slate-700">${ord.numero_comprobante || '-'}</td>
+                    <td class="p-2 sm:p-2.5 text-slate-700">${ord.medico_remitente || '-'}</td>
+                    <td class="p-2 sm:p-2.5 text-slate-700 font-medium">${formatearRegistradoPor(ord.usuario_recepcion)}</td>
+                    <td class="p-2 sm:p-2.5">
+                        <span class="px-2 py-1 rounded-md text-[11px] sm:text-xs font-bold ${badgeClass}">
+                            ${formatearEtiqueta(f.estado)}
+                        </span>
+                    </td>
+                </tr>
+            `;
+            }).join('');
+        }
+
+        async function toggleCamaraEscaneo() {
+            if (camaraActiva) {
+                await cerrarCamaraEscaneo();
+            } else {
+                await abrirCamaraEscaneo();
+            }
+        }
+
+        async function abrirCamaraEscaneo() {
+            const contenedor = document.getElementById('contenedor-camara');
+            const estadoEl = document.getElementById('estado-camara');
+            contenedor.classList.remove('hidden');
+            estadoEl.innerText = 'Iniciando cámara horizontal...';
+
+            if (!window.Html5Qrcode) {
+                estadoEl.innerText = 'No se pudo cargar el lector de cámara.';
+                return;
+            }
+
+            try {
+                if (html5QrCode && camaraActiva) {
+                    await html5QrCode.stop();
+                }
+
+                const formatos = window.Html5QrcodeSupportedFormats ? [
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.QR_CODE
+                ] : undefined;
+
+                if (html5QrCode) {
+                    try {
+                        await html5QrCode.clear();
+                    } catch (_) {}
+                    html5QrCode = null;
+                }
+
+                html5QrCode = new Html5Qrcode(
+                    'lector-camara',
+                    formatos ? { formatsToSupport: formatos, verbose: false } : { verbose: false }
+                );
+
+                const config = {
+                    fps: 15,
+                    qrbox: (viewfinderWidth, viewfinderHeight) => {
+                        const boxWidth = Math.min(Math.floor(viewfinderWidth * 0.88), 440);
+                        const boxHeight = Math.min(Math.floor(viewfinderHeight * 0.45), 140);
+                        return {
+                            width: Math.max(boxWidth, 240),
+                            height: Math.max(boxHeight, 80)
+                        };
+                    },
+                    experimentalFeatures: {
+                        useBarCodeDetectorIfSupported: true
+                    }
+                };
+
+                let procesandoLectura = false;
+                const onScanSuccess = async (decodedText) => {
+                    if (procesandoLectura) return;
+                    const codigoLeido = String(decodedText || '').trim().toUpperCase();
+                    if (!codigoLeido) return;
+                    procesandoLectura = true;
+                    document.getElementById('input-escaneo').value = codigoLeido;
+                    estadoEl.innerText = `Código detectado: ${codigoLeido}`;
+                    await cerrarCamaraEscaneo();
+                    await escanearFrasco();
+                };
+
+                let cameraIdOrConfig = { facingMode: 'environment' };
+                if (typeof Html5Qrcode.getCameras === 'function') {
+                    const cameras = await Html5Qrcode.getCameras();
+                    if (!cameras || cameras.length === 0) {
+                        throw new Error('No se detectó ninguna cámara conectada en este dispositivo.');
+                    }
+                    const trasera = cameras.find(c => /back|rear|environment|trasera/i.test(c.label));
+                    cameraIdOrConfig = trasera ? trasera.id : cameras[0].id;
+                }
+
+                await html5QrCode.start(cameraIdOrConfig, config, onScanSuccess, () => {});
+
+                camaraActiva = true;
+                estadoEl.innerText = 'Cámara activa: coloque el código de barras en horizontal dentro del recuadro con buen margen blanco.';
+            } catch (err) {
+                const detalle = err?.message ? ` (${err.message})` : '';
+                estadoEl.innerText = `No se pudo iniciar la cámara${detalle}. Verifique permisos o use HTTPS/localhost.`;
+                camaraActiva = false;
+            }
+        }
+
+        async function cerrarCamaraEscaneo() {
+            const contenedor = document.getElementById('contenedor-camara');
+            if (html5QrCode && camaraActiva) {
+                try {
+                    await html5QrCode.stop();
+                } catch (_) {}
+            }
+            camaraActiva = false;
+            if (contenedor) {
+                contenedor.classList.add('hidden');
+            }
+        }
+
+        document.getElementById('input-escaneo').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') escanearFrasco();
+        });
+
+        async function escanearFrasco() {
+            const codigo = document.getElementById('input-escaneo').value.trim().toUpperCase();
+            const operador = document.getElementById('operador_macro').value.trim() || 'Turno Noche';
+            const feedback = document.getElementById('feedback-escaneo');
+            if (!codigo) return;
+
+            const { data: frasco, error } = await db
+                .from('frascos_muestra')
+                .select('*, ordenes_patologia(paciente_nombre, numero_comprobante)')
+                .eq('codigo_frasco', codigo)
+                .single();
+
+            feedback.classList.remove('hidden', 'bg-emerald-100', 'text-emerald-800', 'bg-red-100', 'text-red-800', 'bg-amber-100', 'text-amber-800');
+            feedback.style.backgroundColor = '';
+            feedback.style.color = '';
+
+            if (error || !frasco) {
+                feedback.classList.add('bg-red-100', 'text-red-800');
+                feedback.innerHTML = `❌ <strong>CÓDIGO INEXISTENTE (${codigo}):</strong> Este frasco NO está registrado en caja. Repórtelo en el panel rojo de la derecha.`;
+            } else if (frasco.estado !== 'EN_RECEPCION') {
+                feedback.classList.add('bg-amber-100', 'text-amber-800');
+                feedback.innerHTML = `⚠️ <strong>DOBLE ESCANEO:</strong> El frasco ${codigo} (${frasco.ordenes_patologia.paciente_nombre}) ya figura como ${formatearEtiqueta(frasco.estado)}.`;
+            } else {
+                await db.from('frascos_muestra').update({
+                    estado: 'ESCANEADO_MACROSCOPIA',
+                    escaneado_por: operador,
+                    fecha_escaneo_macro: new Date().toISOString()
+                }).eq('id', frasco.id);
+
+                feedback.classList.add('bg-emerald-100', 'text-emerald-800');
+                feedback.innerHTML = `✅ <strong>VALIDADO (ESCANEADO - MACROSCOPIA):</strong> ${codigo} | Paciente: <strong>${frasco.ordenes_patologia.paciente_nombre}</strong> | ${frasco.descripcion_anatomica}`;
+            }
+            document.getElementById('input-escaneo').value = '';
+        }
+
+        async function enfocarReporteHuerfano(codigoFrasco) {
+            const inputCodigo = document.getElementById('huerfano_nombre');
+            const panelReporte = document.getElementById('panel-reporte-huerfano');
+            contextoReporteFrasco = null;
+
+            const { data: frasco } = await db
+                .from('frascos_muestra')
+                .select('codigo_frasco, descripcion_anatomica, ordenes_patologia(paciente_nombre, cantidad_frascos_declarados)')
+                .eq('codigo_frasco', codigoFrasco)
+                .single();
+
+            if (frasco) {
+                contextoReporteFrasco = {
+                    codigoFrasco: frasco.codigo_frasco,
+                    pacienteNombre: frasco.ordenes_patologia?.paciente_nombre || '',
+                    muestra: frasco.descripcion_anatomica || '',
+                    totalFrascos: Number(frasco.ordenes_patologia?.cantidad_frascos_declarados || 1),
+                    numFrasco: obtenerNumeroFrasco(frasco.codigo_frasco)
+                };
+            }
+
+            if (inputCodigo) {
+                inputCodigo.value = codigoFrasco;
+            }
+            if (panelReporte) {
+                panelReporte.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            if (inputCodigo) {
+                setTimeout(() => inputCodigo.focus(), 200);
+            }
+        }
+
+        async function cargarPendientesMacro() {
+            const { data } = await db
+                .from('frascos_muestra')
+                .select('*, ordenes_patologia(paciente_nombre)')
+                .order('id', { ascending: false })
+                .limit(20);
+
+            const tbody = document.getElementById('tabla-pendientes-macro');
+            if (!tbody) return;
+            tbody.innerHTML = (data || []).map(f => {
+                const badgeClass = obtenerClaseEstadoFrasco(f.estado);
+
+                return `
+                <tr>
+                    <td class="p-2 sm:p-2.5 font-mono font-bold text-slate-800">${f.codigo_frasco}</td>
+                    <td class="p-2 sm:p-2.5">${f.ordenes_patologia?.paciente_nombre || '-'}</td>
+                    <td class="p-2 sm:p-2.5">${f.descripcion_anatomica}</td>
+                    <td class="p-2 sm:p-2.5">
+                        <span class="px-2 py-1 rounded-md text-[11px] sm:text-xs font-bold ${badgeClass}">
+                            ${formatearEtiqueta(f.estado)}
+                        </span>
+                    </td>
+                    <td class="p-2 sm:p-2.5">
+                        ${f.estado === 'EN_RECEPCION' ? `
+                            <button type="button" onclick="enfocarReporteHuerfano('${f.codigo_frasco}')" class="text-xs font-semibold bg-red-100 hover:bg-red-200 text-red-800 border border-red-300 px-2.5 py-1 rounded-md transition">
+                                Reportar
+                            </button>
+                        ` : '<span class="text-xs text-slate-400">-</span>'}
+                    </td>
+                </tr>
+            `;
+            }).join('');
+        }
+
+        document.getElementById('huerfano_nombre').addEventListener('input', () => {
+            const actual = document.getElementById('huerfano_nombre').value.trim().toUpperCase();
+            if (contextoReporteFrasco && actual !== contextoReporteFrasco.codigoFrasco) {
+                contextoReporteFrasco = null;
+            }
+        });
+
+        document.getElementById('form-huerfano').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const operador = document.getElementById('operador_macro').value.trim() || 'Turno Macroscopía';
+            const codigoIngresado = document.getElementById('huerfano_nombre').value.trim().toUpperCase();
+            const quePaso = document.getElementById('huerfano_desc').value;
+
+            let datosParaFormato = contextoReporteFrasco;
+            const codigoFrasco = extraerCodigoFrasco(codigoIngresado);
+
+            if (!datosParaFormato && codigoFrasco) {
+                const { data: frascoMatch } = await db
+                    .from('frascos_muestra')
+                    .select('codigo_frasco, descripcion_anatomica, ordenes_patologia(paciente_nombre, cantidad_frascos_declarados)')
+                    .eq('codigo_frasco', codigoFrasco)
+                    .single();
+
+                if (frascoMatch) {
+                    datosParaFormato = {
+                        codigoFrasco: frascoMatch.codigo_frasco,
+                        pacienteNombre: frascoMatch.ordenes_patologia?.paciente_nombre || '',
+                        muestra: frascoMatch.descripcion_anatomica || '',
+                        totalFrascos: Number(frascoMatch.ordenes_patologia?.cantidad_frascos_declarados || 1),
+                        numFrasco: obtenerNumeroFrasco(frascoMatch.codigo_frasco)
+                    };
+                }
+            }
+
+            const descripcionFormateada = construirDescripcionIncidencia(quePaso, datosParaFormato);
+
+            const { error } = await db.from('incidencias_huerfanos').insert([{
+                nombre_etiqueta_manual: codigoIngresado,
+                descripcion_muestra: descripcionFormateada,
+                quien_entrego: document.getElementById('huerfano_entrego').value,
+                detectado_por: operador
+            }]);
+
+            if (error) return alert('Error: ' + error.message);
+
+            if (codigoFrasco) {
+                const { error: errUpdateFrasco } = await db
+                    .from('frascos_muestra')
+                    .update({
+                        estado: 'PENDIENTE_REGULARIZAR',
+                        escaneado_por: operador
+                    })
+                    .eq('codigo_frasco', codigoFrasco);
+
+                if (errUpdateFrasco) {
+                    return alert('Incidencia guardada, pero no se pudo actualizar el estado del frasco: ' + errUpdateFrasco.message);
+                }
+            }
+
+            contextoReporteFrasco = null;
+            alert('🚨 Incidencia registrada y frasco marcado como PENDIENTE - REGULARIZAR.');
+            document.getElementById('form-huerfano').reset();
+            refrescarAreasActivas();
+        });
+
+        async function cargarAuditoria() {
+            const { data: frascos } = await db.from('frascos_muestra').select('estado');
+            const { data: ordenes } = await db.from('ordenes_patologia').select('monto_cobrado');
+            const { data: incidencias } = await db.from('incidencias_huerfanos').select('*').order('fecha_deteccion', { ascending: false });
+
+            const totalReg = frascos?.length || 0;
+            const totalEsc = frascos?.filter(f => f.estado === 'ESCANEADO_MACROSCOPIA').length || 0;
+            const frascosPendReg = frascos?.filter(f => f.estado === 'PENDIENTE_REGULARIZAR').length || 0;
+            const huerfPendReg = incidencias?.filter(i => i.estado_auditoria === 'PENDIENTE_REGULARIZAR').length || 0;
+            const totalHuerf = huerfPendReg + frascosPendReg;
+            
+            const dineroCaja = (ordenes || []).reduce((acc, o) => acc + Number(o.monto_cobrado), 0);
+            const dineroRegularizado = (incidencias || [])
+                .filter(i => i.estado_auditoria === 'REGULARIZADO_PAGO')
+                .reduce((acc, i) => acc + Number(i.monto_regularizado || 0), 0);
+            const dineroTotalReal = dineroCaja + dineroRegularizado;
+
+            document.getElementById('kpi-registrados').innerText = totalReg;
+            document.getElementById('kpi-escaneados').innerText = totalEsc;
+            document.getElementById('kpi-huerfanos').innerText = totalHuerf;
+            document.getElementById('kpi-dinero-caja').innerText = `S/ ${dineroCaja.toFixed(2)}`;
+            document.getElementById('kpi-dinero-total').innerText = `S/ ${dineroTotalReal.toFixed(2)}`;
+            document.getElementById('kpi-regularizado-detalle').innerText = `+ S/ ${dineroRegularizado.toFixed(2)} regularizado`;
+
+            const tbody = document.getElementById('tabla-incidencias');
+            if (!tbody) return;
+            tbody.innerHTML = (incidencias || []).map(inc => {
+                const esRegularizado = inc.estado_auditoria === 'REGULARIZADO_PAGO';
+                const esPendiente = inc.estado_auditoria === 'PENDIENTE_REGULARIZAR';
+                const badgeClass = esPendiente
+                    ? 'bg-red-100 text-red-700'
+                    : (esRegularizado ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700');
+
+                return `
+                <tr class="${esPendiente ? 'bg-red-50/40' : ''}">
+                    <td class="p-2 sm:p-3 text-xs">${new Date(inc.fecha_deteccion).toLocaleString()}</td>
+                    <td class="p-2 sm:p-3 font-mono font-bold">${inc.nombre_etiqueta_manual}</td>
+                    <td class="p-2 sm:p-3">${inc.descripcion_muestra}</td>
+                    <td class="p-2 sm:p-3">${inc.quien_entrego || 'No especificado'}</td>
+                    <td class="p-2 sm:p-3">
+                        <span class="px-2 py-1 rounded-md text-[11px] sm:text-xs font-bold ${badgeClass}">
+                            ${formatearEtiqueta(inc.estado_auditoria)}
+                        </span>
+                    </td>
+                    <td class="p-2 sm:p-3 font-mono font-bold text-xs">
+                        ${esRegularizado ? `S/ ${Number(inc.monto_regularizado || 0).toFixed(2)} (${inc.comprobante_regularizacion || '-'})` : 'S/ 0.00'}
+                    </td>
+                    <td class="p-2 sm:p-3">
+                        ${esPendiente ? `
+                            <button onclick="regularizarConPago('${inc.id}')" class="text-xs bg-emerald-700 hover:bg-emerald-800 text-white px-2.5 py-1 rounded-md mr-1 transition">Regularizó Pago</button>
+                            <button onclick="marcarComoError('${inc.id}')" class="text-xs bg-slate-600 text-white px-2.5 py-1 rounded-md">Fue Error</button>
+                        ` : 'Cerrado'}
+                    </td>
+                </tr>
+            `;
+            }).join('');
+        }
+
+        async function regularizarConPago(id) {
+            const montoStr = prompt('Ingrese el monto regularizado en S/ (Ej: 120.00):');
+            if (montoStr === null) return;
+            const monto = parseFloat(montoStr);
+            if (isNaN(monto) || monto <= 0) return alert('Debe ingresar un monto válido mayor a 0.');
+
+            const comp = prompt('Ingrese el N° de Boleta / Comprobante emitido:') || 'S/N';
+
+            const { data: inc } = await db
+                .from('incidencias_huerfanos')
+                .select('nombre_etiqueta_manual, descripcion_muestra')
+                .eq('id', id)
+                .single();
+
+            await db.from('incidencias_huerfanos').update({
+                estado_auditoria: 'REGULARIZADO_PAGO',
+                monto_regularizado: monto,
+                comprobante_regularizacion: comp
+            }).eq('id', id);
+
+            await marcarFrascoComoRegularizadoEscaneado(
+                `${inc?.nombre_etiqueta_manual || ''} ${inc?.descripcion_muestra || ''}`,
+                document.getElementById('info-usuario')?.innerText || 'Gerencia'
+            );
+
+            refrescarAreasActivas();
+        }
+
+        async function marcarComoError(id) {
+            const nota = prompt('Motivo del error (Ej: Duplicado de orden B001-452, frasco de revisión sin costo):') || 'Error operativo confirmado';
+
+            const { data: inc } = await db
+                .from('incidencias_huerfanos')
+                .select('nombre_etiqueta_manual, descripcion_muestra')
+                .eq('id', id)
+                .single();
+
+            await db.from('incidencias_huerfanos').update({
+                estado_auditoria: 'ERROR_REGISTRO_CONFIRMADO',
+                monto_regularizado: 0,
+                notas_gerencia: nota
+            }).eq('id', id);
+
+            await marcarFrascoComoRegularizadoEscaneado(
+                `${inc?.nombre_etiqueta_manual || ''} ${inc?.descripcion_muestra || ''}`,
+                document.getElementById('info-usuario')?.innerText || 'Gerencia'
+            );
+
+            refrescarAreasActivas();
+        }
+    </script>
+</body>
+</html>
