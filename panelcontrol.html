@@ -227,7 +227,7 @@
                         </div>
                     </div>
 
-                    <div class="bg-red-50 p-4 sm:p-6 rounded-xl shadow-sm border-2 border-red-300">
+                    <div id="panel-reporte-huerfano" class="bg-red-50 p-4 sm:p-6 rounded-xl shadow-sm border-2 border-red-300">
                         <div class="flex items-center gap-2 text-red-700 font-bold text-base sm:text-lg mb-2">
                             <span>🚨 Reporte de Frasco / Incidencia</span>
                         </div>
@@ -707,8 +707,8 @@
                         <p class="text-[10px] font-bold mt-1 mb-2 text-emerald-700">
                             ${formatearEtiqueta(f.estado_pago_frasco)} | Comp: ${ord.numero_comprobante || '-'}
                         </p>
-                        <div class="flex justify-center pt-1 border-t border-slate-200 overflow-x-auto">
-                            <svg id="barcode-frasco-${i}" class="h-12"></svg>
+                        <div class="flex justify-center pt-1 border-t border-slate-200 overflow-x-auto bg-white">
+                            <canvas id="barcode-frasco-${i}" class="h-12"></canvas>
                         </div>
                     </div>
                 `;
@@ -719,10 +719,12 @@
                 if (barcodeEl && window.JsBarcode) {
                     JsBarcode(barcodeEl, f.codigo_frasco, {
                         format: 'CODE128',
-                        width: 2,
-                        height: 44,
+                        width: 2.2,
+                        height: 46,
                         displayValue: false,
-                        margin: 8
+                        margin: 10,
+                        background: '#ffffff',
+                        lineColor: '#000000'
                     });
                 }
             });
@@ -943,21 +945,39 @@
                     await html5QrCode.stop();
                 }
 
+                const formatos = window.Html5QrcodeSupportedFormats ? [
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.QR_CODE
+                ] : undefined;
+
+                if (html5QrCode) {
+                    try {
+                        await html5QrCode.clear();
+                    } catch (_) {}
+                    html5QrCode = null;
+                }
+
+                html5QrCode = new Html5Qrcode(
+                    'lector-camara',
+                    formatos ? { formatsToSupport: formatos, verbose: false } : { verbose: false }
+                );
+
                 const config = {
                     fps: 15,
                     qrbox: (viewfinderWidth, viewfinderHeight) => {
-                        const boxWidth = Math.min(Math.floor(viewfinderWidth * 0.9), 440);
-                        const boxHeight = Math.min(Math.floor(viewfinderHeight * 0.55), 150);
+                        const boxWidth = Math.min(Math.floor(viewfinderWidth * 0.88), 440);
+                        const boxHeight = Math.min(Math.floor(viewfinderHeight * 0.45), 140);
                         return {
-                            width: Math.max(boxWidth, 220),
+                            width: Math.max(boxWidth, 240),
                             height: Math.max(boxHeight, 80)
                         };
+                    },
+                    experimentalFeatures: {
+                        useBarCodeDetectorIfSupported: true
                     }
                 };
-
-                if (!html5QrCode) {
-                    html5QrCode = new Html5Qrcode('lector-camara', { verbose: false });
-                }
 
                 let procesandoLectura = false;
                 const onScanSuccess = async (decodedText) => {
@@ -974,10 +994,11 @@
                 let cameraIdOrConfig = { facingMode: 'environment' };
                 if (typeof Html5Qrcode.getCameras === 'function') {
                     const cameras = await Html5Qrcode.getCameras();
-                    if (cameras && cameras.length > 0) {
-                        const trasera = cameras.find(c => /back|rear|environment|trasera/i.test(c.label));
-                        cameraIdOrConfig = trasera ? trasera.id : cameras[0].id;
+                    if (!cameras || cameras.length === 0) {
+                        throw new Error('No se detectó ninguna cámara conectada en este dispositivo.');
                     }
+                    const trasera = cameras.find(c => /back|rear|environment|trasera/i.test(c.label));
+                    cameraIdOrConfig = trasera ? trasera.id : cameras[0].id;
                 }
 
                 await html5QrCode.start(cameraIdOrConfig, config, onScanSuccess, () => {});
@@ -1043,30 +1064,18 @@
             document.getElementById('input-escaneo').value = '';
         }
 
-        async function reportarFrascoPendienteRegularizar(id, codigoFrasco, pacienteNombre, descripcionMuestra) {
-            const operador = document.getElementById('operador_macro')?.value.trim() || 'Turno Macroscopía';
-            const motivo = prompt(`Motivo para marcar "${codigoFrasco}" como PENDIENTE - REGULARIZAR:`) || 'NO PAGADO';
-
-            const { error } = await db
-                .from('frascos_muestra')
-                .update({
-                    estado: 'PENDIENTE_REGULARIZAR',
-                    escaneado_por: operador
-                })
-                .eq('id', id);
-
-            if (error) {
-                return alert('No se pudo actualizar el estado del frasco: ' + error.message);
+        function enfocarReporteHuerfano(codigoFrasco) {
+            const inputCodigo = document.getElementById('huerfano_nombre');
+            const panelReporte = document.getElementById('panel-reporte-huerfano');
+            if (inputCodigo) {
+                inputCodigo.value = codigoFrasco;
             }
-
-            await db.from('incidencias_huerfanos').insert([{
-                nombre_etiqueta_manual: codigoFrasco,
-                descripcion_muestra: `${motivo} (${pacienteNombre || 'Paciente'} - ${descripcionMuestra || 'Frasco'})`,
-                quien_entrego: 'Recepción / Macroscopía',
-                detectado_por: operador
-            }]);
-
-            refrescarAreasActivas();
+            if (panelReporte) {
+                panelReporte.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            if (inputCodigo) {
+                setTimeout(() => inputCodigo.focus(), 200);
+            }
         }
 
         async function cargarPendientesMacro() {
@@ -1080,8 +1089,6 @@
             if (!tbody) return;
             tbody.innerHTML = (data || []).map(f => {
                 const badgeClass = obtenerClaseEstadoFrasco(f.estado);
-                const pacienteSafe = String(f.ordenes_patologia?.paciente_nombre || '').replace(/'/g, "\\'");
-                const descSafe = String(f.descripcion_anatomica || '').replace(/'/g, "\\'");
 
                 return `
                 <tr>
@@ -1095,7 +1102,7 @@
                     </td>
                     <td class="p-2 sm:p-2.5">
                         ${f.estado === 'EN_RECEPCION' ? `
-                            <button type="button" onclick="reportarFrascoPendienteRegularizar('${f.id}', '${f.codigo_frasco}', '${pacienteSafe}', '${descSafe}')" class="text-xs font-semibold bg-red-100 hover:bg-red-200 text-red-800 border border-red-300 px-2.5 py-1 rounded-md transition">
+                            <button type="button" onclick="enfocarReporteHuerfano('${f.codigo_frasco}')" class="text-xs font-semibold bg-red-100 hover:bg-red-200 text-red-800 border border-red-300 px-2.5 py-1 rounded-md transition">
                                 Reportar
                             </button>
                         ` : '<span class="text-xs text-slate-400">-</span>'}
@@ -1119,17 +1126,6 @@
             }]);
 
             if (error) return alert('Error: ' + error.message);
-
-            const codigoFrasco = extraerCodigoFrasco(codigoIngresado);
-            if (codigoFrasco) {
-                await db
-                    .from('frascos_muestra')
-                    .update({
-                        estado: 'PENDIENTE_REGULARIZAR',
-                        escaneado_por: operador
-                    })
-                    .eq('codigo_frasco', codigoFrasco);
-            }
 
             alert('🚨 Incidencia registrada. Gerencia ha sido alertada.');
             document.getElementById('form-huerfano').reset();
