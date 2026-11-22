@@ -867,23 +867,29 @@
                     });
                 }
 
-                await html5QrCode.start(
-                    {
-                        facingMode: 'environment',
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    },
-                    config,
-                    async (decodedText) => {
-                        const codigoLeido = String(decodedText || '').trim().toUpperCase();
-                        if (!codigoLeido) return;
-                        document.getElementById('input-escaneo').value = codigoLeido;
-                        estadoEl.innerText = `Código detectado: ${codigoLeido}`;
-                        await cerrarCamaraEscaneo();
-                        await escanearFrasco();
-                    },
-                    () => {}
-                );
+                const onScanSuccess = async (decodedText) => {
+                    const codigoLeido = String(decodedText || '').trim().toUpperCase();
+                    if (!codigoLeido) return;
+                    document.getElementById('input-escaneo').value = codigoLeido;
+                    estadoEl.innerText = `Código detectado: ${codigoLeido}`;
+                    await cerrarCamaraEscaneo();
+                    await escanearFrasco();
+                };
+
+                try {
+                    await html5QrCode.start(
+                        {
+                            facingMode: 'environment',
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        },
+                        config,
+                        onScanSuccess,
+                        () => {}
+                    );
+                } catch (_) {
+                    await html5QrCode.start({ facingMode: 'user' }, config, onScanSuccess, () => {});
+                }
 
                 camaraActiva = true;
                 estadoEl.innerText = 'Cámara activa: alinee el código de barras completo (con márgenes blancos) dentro del recuadro.';
@@ -1087,7 +1093,7 @@
                     </td>
                     <td class="p-3">
                         ${esPendiente ? `
-                            <button onclick="regularizarConPago('${inc.id}')" class="text-xs text-white px-2.5 py-1 rounded-md mr-1" style="background-color: #990820;">Regularizó Pago</button>
+                            <button onclick="regularizarConPago('${inc.id}')" class="text-xs bg-emerald-700 hover:bg-emerald-800 text-white px-2.5 py-1 rounded-md mr-1 transition">Regularizó Pago</button>
                             <button onclick="marcarComoError('${inc.id}')" class="text-xs bg-slate-600 text-white px-2.5 py-1 rounded-md">Fue Error</button>
                         ` : 'Cerrado'}
                     </td>
