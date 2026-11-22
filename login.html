@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión - PatologíaControl</title>
+    <link rel="icon" href="logo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        input, select {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans antialiased">
+
+    <div class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md p-8 rounded-2xl shadow-md border border-slate-200">
+            <!-- Logo grande arriba y PatologíaControl debajo -->
+            <div class="flex flex-col items-center justify-center text-center mb-6">
+                <img src="logo.png" alt="Logo PatologíaControl" class="h-24 w-auto max-w-[260px] object-contain mb-2">
+                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Patología<span class="text-emerald-600">Control</span></h1>
+            </div>
+
+            <h2 class="text-lg font-bold text-slate-800 mb-1">Iniciar Sesión</h2>
+            <p class="text-xs text-slate-500 mb-6">Acceso restringido según rol del área.</p>
+
+            <form id="form-login" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Correo Institucional</label>
+                    <input type="email" id="login-email" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="usuario@laboratorio.com">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Contraseña</label>
+                    <input type="password" id="login-password" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="••••••••">
+                </div>
+                <p id="login-error" class="hidden text-xs text-red-600 font-semibold bg-red-50 p-2.5 rounded-lg border border-red-200"></p>
+                <button type="submit" id="btn-login" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-lg transition">
+                    Ingresar al Sistema
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://uzimqtlqlaxxulizenwp.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6aW1xdGxxbGF4eHVsaXplbndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUzNjE0NjYsImV4cCI6MjExMDkzNzQ2Nn0.x2TJlGrelzVdsD0tyAms6jEVqzvnOp1RRstdXU8_B7o';
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function validarPerfilYEntrar(user) {
+            const { data: perfil, error } = await db
+                .from('perfiles_usuario')
+                .select('nombre_completo, rol')
+                .eq('id', user.id)
+                .single();
+
+            if (error || !perfil) {
+                await db.auth.signOut();
+                throw new Error('Tu usuario no tiene un rol asignado en perfiles_usuario.');
+            }
+
+            window.location.href = 'index.html';
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const { data: { session } } = await db.auth.getSession();
+            if (session?.user) {
+                try {
+                    await validarPerfilYEntrar(session.user);
+                } catch (_) {
+                    // Si no tiene perfil válido, permanece en login.html
+                }
+            }
+        });
+
+        document.getElementById('form-login').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorEl = document.getElementById('login-error');
+            const btn = document.getElementById('btn-login');
+            errorEl.classList.add('hidden');
+
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+
+            btn.disabled = true;
+            btn.innerText = 'Verificando...';
+
+            try {
+                const { data, error } = await db.auth.signInWithPassword({ email, password });
+                if (error) {
+                    throw new Error('Credenciales inválidas: ' + error.message);
+                }
+                await validarPerfilYEntrar(data.user);
+            } catch (err) {
+                errorEl.innerText = err.message;
+                errorEl.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerText = 'Ingresar al Sistema';
+            }
+        });
+    </script>
+</body>
+</html>
