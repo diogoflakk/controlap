@@ -68,7 +68,7 @@
             try {
                 const { data, error } = await db.auth.signInWithPassword({ email, password });
                 if (error) {
-                    throw new Error('Credenciales inválidas: ' + error.message);
+                    throw new Error('Credenciales inválidas: ');
                 }
 
                 const { data: perfil, error: errPerfil } = await db
@@ -79,7 +79,7 @@
 
                 if (errPerfil || !perfil) {
                     await db.auth.signOut();
-                    throw new Error('Tu usuario no tiene un rol asignado en perfiles_usuario.');
+                    throw new Error('Tu usuario no tiene un rol asignado.');
                 }
 
                 window.location.href = 'panelcontrol.html';
