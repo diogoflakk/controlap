@@ -29,36 +29,7 @@
     <div id="toast-evento" class="hidden fixed bottom-5 right-5 z-50 max-w-sm bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl border border-emerald-500/50 text-xs font-medium"></div>
 
     <!-- ==========================================
-         PANTALLA DE INICIO DE SESIÓN
-         ========================================== -->
-    <div id="pantalla-login" class="min-h-screen flex items-center justify-center p-4">
-        <div class="bg-white w-full max-w-md p-8 rounded-2xl shadow-md border border-slate-200">
-            <div class="flex items-center space-x-3 mb-6">
-                <img src="logo.png" alt="Logo PatologíaControl" class="h-12 w-auto max-w-[160px] object-contain">
-                <h1 class="text-xl font-bold tracking-tight text-slate-900">Patología<span class="text-emerald-600">Control</span></h1>
-            </div>
-            <h2 class="text-lg font-bold text-slate-800 mb-1">Iniciar Sesión</h2>
-            <p class="text-xs text-slate-500 mb-6">Acceso restringido según rol del área.</p>
-
-            <form id="form-login" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Correo Institucional</label>
-                    <input type="email" id="login-email" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="usuario@laboratorio.com">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Contraseña</label>
-                    <input type="password" id="login-password" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="••••••••">
-                </div>
-                <p id="login-error" class="hidden text-xs text-red-600 font-semibold bg-red-50 p-2.5 rounded-lg border border-red-200"></p>
-                <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-lg transition">
-                    Ingresar al Sistema
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- ==========================================
-         APLICACIÓN PRINCIPAL (OCULTA HASTA LOGIN)
+         APLICACIÓN PRINCIPAL (PROTEGIDA POR SESIÓN)
          ========================================== -->
     <div id="app-principal" class="hidden">
         <nav class="bg-slate-900 text-white px-6 py-3 shadow-sm border-b border-slate-800 flex flex-wrap justify-between items-center gap-4">
@@ -329,7 +300,7 @@
             }
 
             canalRealtime = db
-                .channel('patologia-realtime-sync-v3')
+                .channel('patologia-realtime-sync-v4')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'ordenes_patologia' }, (payload) => {
                     if (payload.eventType === 'INSERT') {
                         mostrarToast(`📥 Nueva orden registrada: ${payload.new.codigo_orden || ''}`);
@@ -375,23 +346,6 @@
             }
         }
 
-        document.getElementById('form-login').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const errorEl = document.getElementById('login-error');
-            errorEl.classList.add('hidden');
-
-            const email = document.getElementById('login-email').value.trim();
-            const password = document.getElementById('login-password').value;
-
-            const { data, error } = await db.auth.signInWithPassword({ email, password });
-            if (error) {
-                errorEl.innerText = 'Credenciales inválidas: ' + error.message;
-                errorEl.classList.remove('hidden');
-                return;
-            }
-            await iniciarSesionConUsuario(data.user);
-        });
-
         async function iniciarSesionConUsuario(user) {
             const { data: perfil, error } = await db
                 .from('perfiles_usuario')
@@ -402,13 +356,13 @@
             if (error || !perfil) {
                 alert('Tu usuario no tiene un rol asignado en perfiles_usuario.');
                 await db.auth.signOut();
+                window.location.href = 'login.html';
                 return;
             }
 
             rolActual = perfil.rol;
             pestanasPermitidas = PERMISOS_POR_ROL[rolActual] || [];
 
-            document.getElementById('pantalla-login').classList.add('hidden');
             document.getElementById('app-principal').classList.remove('hidden');
             document.getElementById('info-usuario').innerText = perfil.nombre_completo;
             document.getElementById('info-rol').innerText = rolActual;
@@ -436,18 +390,17 @@
                 canalRealtime = null;
             }
             await db.auth.signOut();
-            rolActual = null;
-            pestanasPermitidas = [];
-            document.getElementById('app-principal').classList.add('hidden');
-            document.getElementById('pantalla-login').classList.remove('hidden');
+            window.location.href = 'login.html';
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
             generarInputsFrascos();
             const { data: { session } } = await db.auth.getSession();
-            if (session?.user) {
-                await iniciarSesionConUsuario(session.user);
+            if (!session?.user) {
+                window.location.href = 'login.html';
+                return;
             }
+            await iniciarSesionConUsuario(session.user);
         });
 
         function cambiarTab(tab) {
