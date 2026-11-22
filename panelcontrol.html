@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PatologíaControl - Trazabilidad y Auditoría en Tiempo Real</title>
+    <title>Patología Control - Auditoría en Tiempo Real</title>
     <link rel="icon" href="logo.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -27,18 +27,16 @@
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans antialiased">
 
-    <!-- Toast / Alerta Instantánea -->
+
     <div id="toast-evento" class="hidden fixed bottom-4 right-4 left-4 sm:left-auto z-50 max-w-sm bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl text-xs font-medium" style="border: 1px solid rgba(153, 8, 32, 0.55);"></div>
 
-    <!-- ==========================================
-         APLICACIÓN PRINCIPAL (PROTEGIDA POR SESIÓN)
-         ========================================== -->
+
     <div id="app-principal" class="hidden">
         <nav class="bg-slate-900 text-white px-3 sm:px-6 py-3 shadow-sm border-b border-slate-800 flex flex-wrap justify-between items-center gap-2.5 sm:gap-4">
             <div class="flex flex-wrap items-center gap-2.5 sm:gap-6 w-full sm:w-auto justify-between sm:justify-start">
                 <div class="flex items-center space-x-2 sm:space-x-3">
                     <img src="logo.png" alt="Logo PatologíaControl" class="h-8 sm:h-11 w-auto max-w-[110px] sm:max-w-[140px] object-contain">
-                    <span class="text-base sm:text-lg font-bold tracking-tight">Patología<span style="color: #990820;">Control</span></span>
+                    <span class="text-base sm:text-lg font-bold tracking-tight">Patología <span style="color: #990820;"> Control</span></span>
                     <span id="badge-realtime" class="flex items-center gap-1 text-[10px] sm:text-[11px] font-mono bg-slate-800 border border-slate-700 px-2 py-0.5 rounded-full text-slate-300">
                         <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
                         CONECTANDO...
@@ -56,9 +54,9 @@
                 </div>
 
                 <div class="flex flex-wrap items-center gap-1 sm:gap-1.5 w-full sm:w-auto">
-                    <button onclick="cambiarTab('recepcion')" id="btn-recepcion" class="tab-btn hidden text-white px-2.5 sm:px-3.5 py-1.5 rounded-md font-medium text-[11px] sm:text-xs transition flex-1 sm:flex-initial text-center" style="background-color: #990820;">Recepción y Caja</button>
+                    <button onclick="cambiarTab('recepcion')" id="btn-recepcion" class="tab-btn hidden text-white px-2.5 sm:px-3.5 py-1.5 rounded-md font-medium text-[11px] sm:text-xs transition flex-1 sm:flex-initial text-center" style="background-color: #990820;">Recepción | Caja</button>
                     <button onclick="cambiarTab('macroscopia')" id="btn-macroscopia" class="tab-btn hidden text-slate-300 hover:text-white hover:bg-slate-800 px-2.5 sm:px-3.5 py-1.5 rounded-md font-medium text-[11px] sm:text-xs transition flex-1 sm:flex-initial text-center">Macroscopía</button>
-                    <button onclick="cambiarTab('auditoria')" id="btn-auditoria" class="tab-btn hidden text-slate-300 hover:text-white hover:bg-slate-800 px-2.5 sm:px-3.5 py-1.5 rounded-md font-medium text-[11px] sm:text-xs transition flex-1 sm:flex-initial text-center">Cuadre y Auditoría</button>
+                    <button onclick="cambiarTab('auditoria')" id="btn-auditoria" class="tab-btn hidden text-slate-300 hover:text-white hover:bg-slate-800 px-2.5 sm:px-3.5 py-1.5 rounded-md font-medium text-[11px] sm:text-xs transition flex-1 sm:flex-initial text-center">Cuadre | Auditoría</button>
                 </div>
             </div>
 
@@ -75,11 +73,11 @@
 
         <main class="max-w-6xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
 
-            <!-- MÓDULO 1: RECEPCIÓN Y CAJA -->
+
             <section id="tab-recepcion" class="tab-content hidden space-y-4 sm:space-y-6">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                     <div class="lg:col-span-2 bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200">
-                        <h2 class="text-base sm:text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Registro de Orden y Cobro Individual por Frasco</h2>
+                        <h2 class="text-base sm:text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">REGISTRO DE BIOPSIA</h2>
                         <form id="form-recepcion" class="space-y-4">
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                                 <div>
@@ -92,33 +90,36 @@
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 bg-slate-50 p-3 sm:p-4 rounded-lg border border-slate-200">
-                                <div>
-                                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Método de Pago *</label>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 items-stretch bg-slate-50 p-3 sm:p-4 rounded-lg border border-slate-200">
+                                <div class="flex flex-col justify-between">
+                                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1.5 leading-snug whitespace-nowrap">Método de Pago *</label>
                                     <select id="tipo_pago" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm">
                                         <option value="EFECTIVO">Efectivo</option>
                                         <option value="TARJETA">Tarjeta POS</option>
                                         <option value="TRANSFERENCIA">Transferencia / Yape / Plin</option>
                                         <option value="SEGURO">Seguro / Convenio</option>
-                                        <option value="CORTESIA_AUTORIZADA">Cortesía (Requiere N° Auth)</option>
+                                        <option value="CORTESIA_AUTORIZADA">Cortesía (Requiere Auth)</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1">N° Boleta / Comprobante *</label>
+                                <div class="flex flex-col justify-between">
+                                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1.5 leading-snug whitespace-nowrap">N° Boleta / Comprobante *</label>
                                     <input type="text" id="numero_comprobante" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" placeholder="Ej: B001-004521">
                                 </div>
-                                <div>
-                                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Cantidad de Frascos *</label>
+                                <div class="flex flex-col justify-between">
+                                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1.5 leading-snug whitespace-nowrap">Cantidad de Frascos *</label>
                                     <input type="number" id="cantidad_frascos" min="1" max="15" value="1" required onchange="generarInputsFrascos()" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm font-bold">
                                 </div>
-                                <div>
-                                    <div class="flex items-center justify-between gap-1 mb-1">
-                                        <label class="block text-xs font-bold uppercase text-amber-800">Código Fco (Salto)</label>
-                                        <span id="badge-ultimo-fco" class="font-mono text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.5 rounded">Último: ---</span>
+                                <div class="flex flex-col justify-between">
+                                    <div class="flex items-center justify-between gap-1.5 mb-1.5">
+                                        <label class="block text-xs font-bold uppercase text-amber-800 leading-snug whitespace-nowrap">Código Fco (Salto)</label>
+                                        <span id="badge-ultimo-fco" class="font-mono text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.5 rounded whitespace-nowrap shrink-0">Último: ---</span>
                                     </div>
                                     <input type="text" id="codigo_fco_manual" oninput="this.value=this.value.toUpperCase()" maxlength="6" class="w-full border border-amber-400 rounded-lg p-2.5 text-sm font-mono uppercase" placeholder="Ej: CE-203">
-                                    <span class="text-[10px] text-slate-500 leading-tight block mt-0.5">Vacío = sigue correlativo.</span>
                                 </div>
+                            </div>
+
+                            <div class="-mt-2 flex justify-end">
+                                <span class="text-[11px] text-slate-500">Si dejas <strong>Código Fco (Salto)</strong> vacío, continúa automáticamente el correlativo.</span>
                             </div>
 
                             <div>
@@ -129,14 +130,14 @@
                             <div id="contenedor-frascos" class="space-y-3 bg-slate-50 p-3 sm:p-4 rounded-lg border border-slate-200"></div>
 
                             <div class="flex flex-wrap justify-between items-center gap-2 bg-slate-100 border border-slate-300 text-slate-800 px-3 sm:px-4 py-3 rounded-lg">
-                                <span class="text-xs uppercase font-bold text-slate-600">Total Boleta (Suma de frascos):</span>
+                                <span class="text-xs uppercase font-bold text-slate-600">Total Boleta:</span>
                                 <span id="total-orden-preview" class="text-lg sm:text-xl font-black text-emerald-700">S/ 0.00</span>
                             </div>
 
                             <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 pt-2">
                                 <input type="text" id="usuario_recepcion" required class="border border-slate-300 rounded-lg p-2.5 text-sm w-full sm:w-52" placeholder="Tu nombre (Recepción)">
                                 <button type="submit" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-400 font-semibold px-5 py-2.5 rounded-lg shadow-sm transition text-sm">
-                                    Registrar y Generar Etiquetas
+                                    REGISTRAR Y GENERAR ETIQUETAS
                                 </button>
                             </div>
                         </form>
@@ -144,7 +145,7 @@
 
                     <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
                         <div>
-                            <h3 class="text-base sm:text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Etiquetas de Trazabilidad</h3>
+                            <h3 class="text-base sm:text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Etiquetas de Seguimiento</h3>
                             <p class="text-xs text-slate-500 mb-3">Cada etiqueta muestra si el frasco fue pagado individualmente o incluido en paquete.</p>
 
                             <div class="flex gap-2 mb-4">
@@ -166,12 +167,12 @@
                     </div>
                 </div>
 
-                <!-- Monitor en Vivo para Recepción -->
+
                 <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200">
                     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5 mb-3">
                         <div>
-                            <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-600">Estado en Vivo de Frascos Registrados</h3>
-                            <p id="subtitulo-fecha-recepcion" class="text-[11px] text-slate-500">Mostrando registros del día de hoy • Orden: más antiguo al más nuevo</p>
+                            <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-600">Estado de Frascos Registrados</h3>
+                            <p id="subtitulo-fecha-recepcion" class="text-[11px] text-slate-500">Mostrando registros del día </p>
                         </div>
                         <div class="flex items-center gap-2">
                             <input type="date" id="filtro-fecha-recepcion" onchange="cargarRecepcionVivo()" class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold">
@@ -197,11 +198,11 @@
                 </div>
             </section>
 
-            <!-- MÓDULO 2: MACROSCOPÍA -->
+
             <section id="tab-macroscopia" class="tab-content hidden space-y-4 sm:space-y-6">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                     <div class="lg:col-span-2 bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200">
-                        <h2 class="text-base sm:text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Estación de Escaneo en Macroscopía</h2>
+                        <h2 class="text-base sm:text-lg font-bold text-slate-800 border-b border-slate-100 pb-3 mb-4">Escaneo en Macroscopía</h2>
                         
                         <div class="flex flex-col sm:flex-row gap-2 sm:gap-2.5 mb-3">
                             <input type="text" id="operador_macro" class="border border-slate-300 rounded-lg p-2.5 sm:p-3 text-sm w-full sm:w-44" placeholder="Patólogo / Tecnólogo">
@@ -217,7 +218,7 @@
                             </div>
                         </div>
 
-                        <!-- Recuadro horizontal de cámara con borde verde -->
+
                         <div id="contenedor-camara" class="hidden mb-4 p-2.5 sm:p-3 rounded-xl border-2 border-emerald-600 bg-emerald-50/40">
                             <div class="flex justify-between items-center mb-2 gap-2">
                                 <span class="text-[11px] sm:text-xs font-bold uppercase text-emerald-800">📷 Escáner Horizontal</span>
@@ -229,7 +230,7 @@
 
                         <div id="feedback-escaneo" class="hidden mb-4 p-3 sm:p-4 rounded-lg font-medium text-xs sm:text-sm"></div>
 
-                        <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-500 mb-2">Frascos en Cola / Procesados (En Vivo)</h3>
+                        <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-500 mb-2">Frascos en Cola / Procesados</h3>
                         <div class="overflow-x-auto">
                             <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[520px]">
                                 <thead>
@@ -283,7 +284,7 @@
                 <div id="panel-clave-cortesia" class="bg-amber-50 border border-amber-300 rounded-xl p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3 shadow-sm">
                     <div class="space-y-0.5">
                         <div class="text-xs font-bold uppercase text-amber-900">🔐 Clave Variable Vigente de Cortesía</div>
-                        <p id="vigencia-clave-cortesia" class="text-[11px] text-amber-800">Sincronizada en tiempo real • Formato ABC-1234</p>
+                        <p id="vigencia-clave-cortesia" class="text-[11px] text-amber-800">Sincronizada en tiempo real •</p>
                     </div>
                     <div class="flex items-center gap-2">
                         <span id="valor-clave-cortesia" class="font-mono text-sm sm:text-base font-black bg-white border border-amber-400 text-slate-900 px-3 py-1 rounded-lg">ABC-0000</span>
@@ -298,11 +299,11 @@
                         <p id="kpi-registrados" class="text-xl sm:text-2xl font-black mt-1" style="color: #000000;">0</p>
                     </div>
                     <div class="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-sm">
-                        <span class="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase">Escaneados Macro</span>
+                        <span class="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase">Escaneados Macroscopía</span>
                         <p id="kpi-escaneados" class="text-xl sm:text-2xl font-black mt-1" style="color: #1e3a8a;">0</p>
                     </div>
                     <div class="bg-white p-3.5 sm:p-4 rounded-xl border-2 border-red-200 shadow-sm">
-                        <span class="text-[10px] sm:text-[11px] font-bold text-red-500 uppercase">Huérfanos Pendientes</span>
+                        <span class="text-[10px] sm:text-[11px] font-bold text-red-500 uppercase">Frascos S/C Pendientes</span>
                         <p id="kpi-huerfanos" class="text-xl sm:text-2xl font-black mt-1" style="color: #990820;">0</p>
                     </div>
                     <div class="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-sm">
@@ -317,7 +318,7 @@
                 </div>
 
                 <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200">
-                    <h3 class="text-base sm:text-lg font-bold text-red-700 mb-2">⚠️ Registro de Incidencias / Frascos Reportados (En Vivo)</h3>
+                    <h3 class="text-base sm:text-lg font-bold text-red-700 mb-2">⚠️ Registro de Incidencias</h3>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[680px]">
                             <thead>
@@ -336,12 +337,12 @@
                     </div>
                 </div>
 
-                <!-- Apartado Independiente: Estado en Vivo de Frascos Registrados (Gerencia) -->
+                
                 <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200">
                     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3">
                         <div>
-                            <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-700">Estado en Vivo de Frascos Registrados — Gerencia</h3>
-                            <p id="subtitulo-fecha-gerencia" class="text-[11px] text-slate-500">Mostrando registros del día de hoy • Orden: más antiguo al más nuevo</p>
+                            <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-700">Estado de Frascos Registrados — Gerencia</h3>
+                            <p id="subtitulo-fecha-gerencia" class="text-[11px] text-slate-500">Mostrando registros del día • Orden: más antiguo al más nuevo</p>
                         </div>
                         <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-wrap">
                             <div class="flex items-center gap-1.5">
@@ -353,7 +354,7 @@
                             <input type="text" id="filtro-texto-gerencia" oninput="cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia')" class="border border-slate-300 rounded-lg px-3 py-2 sm:py-1.5 text-xs w-full sm:w-56" placeholder="Buscar por boleta, médico, paciente o código...">
                             <select id="filtro-estado-gerencia" onchange="cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia')" class="border border-slate-300 rounded-lg px-2.5 py-2 sm:py-1.5 text-xs font-semibold w-full sm:w-auto">
                                 <option value="TODOS">Todos los estados</option>
-                                <option value="EN_RECEPCION">EN - RECEPCION</option>
+                                <option value="EN_RECEPCION">EN  RECEPCION</option>
                                 <option value="PENDIENTE_REGULARIZAR">PENDIENTE - REGULARIZAR</option>
                                 <option value="ESCANEADO_MACROSCOPIA">ESCANEADO - MACROSCOPIA</option>
                             </select>
@@ -733,7 +734,7 @@
             }
 
             canalRealtime = db
-                .channel('patologia-realtime-sync-v12')
+                .channel('patologia-realtime-sync-v13')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'correlativo_frascos' }, () => {
                     actualizarIndicadorUltimoFrasco();
                 })
@@ -915,14 +916,14 @@
         function generarInputsFrascos() {
             const cant = parseInt(document.getElementById('cantidad_frascos').value) || 1;
             const contenedor = document.getElementById('contenedor-frascos');
-            contenedor.innerHTML = `<label class="block text-xs font-bold uppercase text-slate-700">Desglose obligatorio por frasco (${cant} etiquetas):</label>`;
+            contenedor.innerHTML = `<label class="block text-xs font-bold uppercase text-slate-700">Desglose por frasco (${cant} etiquetas):</label>`;
             
             for (let i = 1; i <= cant; i++) {
                 contenedor.innerHTML += `
                     <div class="bg-white p-2.5 rounded-lg border border-slate-200 space-y-2">
                         <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
                             <div class="md:col-span-5">
-                                <input type="text" name="desc_frasco[]" required class="w-full border border-slate-300 rounded-md p-2 text-sm" placeholder="Frasco ${i}: Muestra anatómica">
+                                <input type="text" name="desc_frasco[]" required class="w-full border border-slate-300 rounded-md p-2 text-sm" placeholder="Frasco ${i}: Muestra">
                             </div>
                             <div class="md:col-span-4">
                                 <select id="estado_pago_frasco_${i}" name="estado_pago_frasco[]" onchange="alternarClaveCortesia(${i}); actualizarTotalOrden();" class="w-full border border-slate-300 rounded-md p-2 text-xs font-semibold">
