@@ -32,13 +32,13 @@
     <div id="toast-evento" class="hidden fixed bottom-4 right-4 left-4 sm:left-auto z-50 max-w-sm bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl text-xs font-medium" style="border: 1px solid rgba(153, 8, 32, 0.55);"></div>
 
 
-    <!-- VENTANA LATERAL DE DETALLE DE FRASCO (GERENCIA) -->
+    <!-- VENTANA LATERAL DE DETALLE DE FRASCO -->
     <div id="drawer-detalle-frasco" class="hidden fixed inset-0 z-50 flex justify-end bg-slate-950/50 backdrop-blur-[1px]" onclick="if(event.target===this) cerrarDetalleFrasco()">
         <aside class="relative w-full max-w-lg bg-white h-full shadow-2xl border-l border-slate-200 flex flex-col justify-between overflow-hidden">
             <div class="overflow-y-auto p-4 sm:p-6 space-y-5">
                 <div class="flex items-start justify-between gap-3 border-b border-slate-200 pb-4">
                     <div>
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Expediente de Auditoría • Gerencia</span>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Expediente de Auditoría</span>
                         <div class="flex items-center gap-2.5 mt-1 flex-wrap">
                             <h3 id="drawer-codigo-frasco" class="text-xl font-mono font-black text-slate-900">---</h3>
                             <span id="drawer-estado-badge" class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-100 text-amber-800">---</span>
@@ -321,8 +321,8 @@
                 <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200">
                     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5 mb-3">
                         <div>
-                            <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-600">Estado de Frascos Registrados</h3>
-                            <p id="subtitulo-fecha-recepcion" class="text-[11px] text-slate-500">Mostrando registros del día </p>
+                            <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-600">Órdenes Registradas (CE-XXX)</h3>
+                            <p id="subtitulo-fecha-recepcion" class="text-[11px] text-slate-500">Mostrando registros del día • Orden: más antiguo al más nuevo</p>
                         </div>
                         <div class="flex items-center gap-2">
                             <input type="date" id="filtro-fecha-recepcion" onchange="cargarRecepcionVivo()" class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold">
@@ -335,9 +335,9 @@
                         <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[540px]">
                             <thead>
                                 <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
-                                    <th class="p-2 sm:p-2.5">Código Frasco</th>
+                                    <th class="p-2 sm:p-2.5">Orden (CE-XXX)</th>
                                     <th class="p-2 sm:p-2.5">Paciente</th>
-                                    <th class="p-2 sm:p-2.5">Muestra</th>
+                                    <th class="p-2 sm:p-2.5">Muestras</th>
                                     <th class="p-2 sm:p-2.5">Registrado Por</th>
                                     <th class="p-2 sm:p-2.5">Estado Macroscopía</th>
                                 </tr>
@@ -379,22 +379,6 @@
                         </div>
 
                         <div id="feedback-escaneo" class="hidden mb-4 p-3 sm:p-4 rounded-lg font-medium text-xs sm:text-sm"></div>
-
-                        <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-500 mb-2">Frascos en Cola / Procesados</h3>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[520px]">
-                                <thead>
-                                    <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
-                                        <th class="p-2 sm:p-2.5">Código Frasco</th>
-                                        <th class="p-2 sm:p-2.5">Paciente</th>
-                                        <th class="p-2 sm:p-2.5">Muestra</th>
-                                        <th class="p-2 sm:p-2.5">Estado</th>
-                                        <th class="p-2 sm:p-2.5">Acción</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tabla-pendientes-macro" class="divide-y divide-slate-100"></tbody>
-                            </table>
-                        </div>
                     </div>
 
                     <div id="panel-reporte-huerfano" class="bg-red-50 p-4 sm:p-6 rounded-xl shadow-sm border-2 border-red-300">
@@ -425,6 +409,48 @@
                                 Registrar Incidencia y Bloquear
                             </button>
                         </form>
+                    </div>
+                </div>
+
+                <!-- MISMA ESTRUCTURA DE GERENCIA PARA MACROSCOPIA -->
+                <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3">
+                        <div>
+                            <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-700">Estado de Frascos Registrados</h3>
+                            <p id="subtitulo-fecha-macro" class="text-[11px] text-slate-500">Mostrando registros del día • Orden: más antiguo al más nuevo</p>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-wrap">
+                            <div class="flex items-center gap-1.5">
+                                <input type="date" id="filtro-fecha-macro" onchange="cargarFrascosDetallados('tabla-pendientes-macro', 'macro')" class="border border-slate-300 rounded-lg px-2.5 py-2 sm:py-1.5 text-xs font-semibold">
+                                <button type="button" onclick="establecerHoyMacro()" class="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-lg px-2.5 py-2 sm:py-1.5 text-xs font-semibold transition shrink-0">
+                                    Hoy
+                                </button>
+                            </div>
+                            <input type="text" id="filtro-texto-macro" oninput="cargarFrascosDetallados('tabla-pendientes-macro', 'macro')" class="border border-slate-300 rounded-lg px-3 py-2 sm:py-1.5 text-xs w-full sm:w-56" placeholder="Buscar por boleta, médico, paciente o código...">
+                            <select id="filtro-estado-macro" onchange="cargarFrascosDetallados('tabla-pendientes-macro', 'macro')" class="border border-slate-300 rounded-lg px-2.5 py-2 sm:py-1.5 text-xs font-semibold w-full sm:w-auto">
+                                <option value="TODOS">Todos los estados</option>
+                                <option value="EN_RECEPCION">EN  RECEPCION</option>
+                                <option value="PENDIENTE_REGULARIZAR">PENDIENTE - REGULARIZAR</option>
+                                <option value="ESCANEADO_MACROSCOPIA">ESCANEADO - MACROSCOPIA</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[740px]">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
+                                    <th class="p-2 sm:p-2.5">Código Frasco</th>
+                                    <th class="p-2 sm:p-2.5">Paciente</th>
+                                    <th class="p-2 sm:p-2.5">Muestra</th>
+                                    <th class="p-2 sm:p-2.5">N° Boleta / Comprobante *</th>
+                                    <th class="p-2 sm:p-2.5">Médico Remitente</th>
+                                    <th class="p-2 sm:p-2.5">Registrado Por</th>
+                                    <th class="p-2 sm:p-2.5">Estado Macroscopía</th>
+                                    <th class="p-2 sm:p-2.5 text-center">Detalle</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-pendientes-macro" class="divide-y divide-slate-100"></tbody>
+                        </table>
                     </div>
                 </div>
             </section>
@@ -613,6 +639,15 @@
             return `S/ ${Number.isNaN(num) ? '0.00' : num.toFixed(2)}`;
         }
 
+        function extraerCodigoOrdenBase(codigoFrasco) {
+            const upper = String(codigoFrasco || '').trim().toUpperCase();
+            const match = upper.match(/^([A-Z]{2}-\d{3})(?:-\d+)?$/);
+            if (match) return match[1];
+            const partes = upper.split('-');
+            if (partes.length >= 2) return `${partes[0]}-${partes[1]}`;
+            return upper || '-';
+        }
+
         function extraerPorcentajeDescuentoMuestra(descripcion) {
             const texto = String(descripcion || '');
             const match = texto.match(/Desc\.\s*Gral\.\s*(\d+(?:\.\d+)?)\s*%/i);
@@ -684,7 +719,7 @@
 
             document.getElementById('drawer-registrado-por').innerText = formatearRegistradoPor(ord.usuario_recepcion);
             document.getElementById('drawer-fecha-registro').innerText = formatearFechaHoraLegible(
-                frasco.fecha_creacion || frasco.created_at || ord.fecha_creacion || ord.created_at
+                frasco.fecha_creacion || frasco.created_at
             );
             document.getElementById('drawer-escaneado-por').innerText = frasco.escaneado_por
                 ? formatearRegistradoPor(frasco.escaneado_por)
@@ -737,8 +772,10 @@
         function inicializarFiltrosFechaEstadoVivo() {
             const hoy = obtenerFechaLocalYYYYMMDD();
             const inputRec = document.getElementById('filtro-fecha-recepcion');
+            const inputMacro = document.getElementById('filtro-fecha-macro');
             const inputGer = document.getElementById('filtro-fecha-gerencia');
             if (inputRec && !inputRec.value) inputRec.value = hoy;
+            if (inputMacro && !inputMacro.value) inputMacro.value = hoy;
             if (inputGer && !inputGer.value) inputGer.value = hoy;
         }
 
@@ -746,6 +783,12 @@
             const inputRec = document.getElementById('filtro-fecha-recepcion');
             if (inputRec) inputRec.value = obtenerFechaLocalYYYYMMDD();
             cargarRecepcionVivo();
+        }
+
+        function establecerHoyMacro() {
+            const inputMacro = document.getElementById('filtro-fecha-macro');
+            if (inputMacro) inputMacro.value = obtenerFechaLocalYYYYMMDD();
+            cargarFrascosDetallados('tabla-pendientes-macro', 'macro');
         }
 
         function alCambiarFechaGerencia() {
@@ -778,26 +821,11 @@
                 }
             }
 
-            if (registro?.ordenes_patologia) {
-                for (const campo of ['fecha_creacion', 'created_at', 'fecha_registro']) {
-                    const valor = registro.ordenes_patologia[campo];
-                    if (valor) {
-                        const dt = new Date(valor);
-                        if (!Number.isNaN(dt.getTime())) {
-                            return obtenerFechaLocalYYYYMMDD(dt) === fechaYYYYMMDD;
-                        }
-                    }
-                }
-            }
-
             return fechaYYYYMMDD === obtenerFechaLocalYYYYMMDD();
         }
 
         function obtenerFechaRegistroFrasco(frasco) {
-            const raw = frasco.fecha_creacion
-                || frasco.created_at
-                || frasco.ordenes_patologia?.fecha_creacion
-                || frasco.ordenes_patologia?.created_at;
+            const raw = frasco.fecha_creacion || frasco.created_at;
             if (!raw) return null;
             const dt = new Date(raw);
             return Number.isNaN(dt.getTime()) ? null : dt;
@@ -1050,6 +1078,13 @@
             return 'bg-emerald-700 text-white';
         }
 
+        function resolverEstadoConsolidadoOrden(estados) {
+            const lista = Array.isArray(estados) ? estados : [];
+            if (lista.some(e => e === 'PENDIENTE_REGULARIZAR')) return 'PENDIENTE_REGULARIZAR';
+            if (lista.length > 0 && lista.every(e => e === 'ESCANEADO_MACROSCOPIA')) return 'ESCANEADO_MACROSCOPIA';
+            return 'EN_RECEPCION';
+        }
+
         function extraerCodigoFrasco(texto) {
             if (!texto) return null;
             const upper = String(texto).toUpperCase();
@@ -1119,7 +1154,7 @@
             }
 
             canalRealtime = db
-                .channel('patologia-realtime-sync-v18')
+                .channel('patologia-realtime-sync-v19')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'correlativo_frascos' }, () => {
                     actualizarIndicadorUltimoFrasco();
                 })
@@ -1173,7 +1208,7 @@
         function refrescarAreasActivas() {
             actualizarIndicadorUltimoFrasco();
             cargarRecepcionVivo();
-            cargarPendientesMacro();
+            cargarFrascosDetallados('tabla-pendientes-macro', 'macro');
             cargarAuditoria();
             cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia');
             if (pestanasPermitidas.includes('auditoria')) {
@@ -1278,7 +1313,7 @@
                 cargarRecepcionVivo();
             }
             if (tab === 'macroscopia') {
-                cargarPendientesMacro();
+                cargarFrascosDetallados('tabla-pendientes-macro', 'macro');
             }
             if (tab === 'auditoria') {
                 await sincronizarClaveCortesiaDesdeDB(false);
@@ -1720,42 +1755,77 @@
             const fechaSel = document.getElementById('filtro-fecha-recepcion')?.value || obtenerFechaLocalYYYYMMDD();
             const subtitulo = document.getElementById('subtitulo-fecha-recepcion');
             if (subtitulo) {
-                subtitulo.innerText = `Mostrando registros ${formatearFechaLegible(fechaSel)} • Orden: más antiguo al más nuevo`;
+                subtitulo.innerText = `Mostrando órdenes ${formatearFechaLegible(fechaSel)} • Orden: más antiguo al más nuevo`;
             }
 
             const { data } = await db
                 .from('frascos_muestra')
-                .select('*, ordenes_patologia(paciente_nombre, usuario_recepcion, fecha_creacion, created_at)')
+                .select('*, ordenes_patologia(paciente_nombre, usuario_recepcion)')
                 .order('id', { ascending: true })
                 .limit(200);
 
-            const filtrados = ordenarFrascosCronologicamente(
+            const frascosDia = ordenarFrascosCronologicamente(
                 (data || []).filter(f => perteneceAFechaSeleccionada(f, fechaSel))
             );
+
+            const agrupadasMap = new Map();
+            frascosDia.forEach((f) => {
+                const ordenBase = extraerCodigoOrdenBase(f.codigo_frasco);
+                const claveGrupo = f.orden_id ? `orden-${f.orden_id}` : `ce-${ordenBase}`;
+
+                if (!agrupadasMap.has(claveGrupo)) {
+                    agrupadasMap.set(claveGrupo, {
+                        ordenBase,
+                        pacienteNombre: f.ordenes_patologia?.paciente_nombre || '-',
+                        muestras: [],
+                        registradoPor: formatearRegistradoPor(f.ordenes_patologia?.usuario_recepcion),
+                        estados: [],
+                        primerId: Number(f.id || 0)
+                    });
+                }
+
+                const grupo = agrupadasMap.get(claveGrupo);
+                if (f.descripcion_anatomica) grupo.muestras.push(f.descripcion_anatomica);
+                if (f.estado) grupo.estados.push(f.estado);
+            });
+
+            const ordenesAgrupadas = Array.from(agrupadasMap.values()).sort((a, b) => {
+                const matchA = String(a.ordenBase || '').match(/^([A-Z]{2})-(\d+)$/);
+                const matchB = String(b.ordenBase || '').match(/^([A-Z]{2})-(\d+)$/);
+                if (matchA && matchB) {
+                    const numA = parseInt(matchA[2], 10);
+                    const numB = parseInt(matchB[2], 10);
+                    if (numA !== numB) return numA - numB;
+                }
+                return a.primerId - b.primerId;
+            });
 
             const tbody = document.getElementById('tabla-recepcion-vivo');
             if (!tbody) return;
 
-            if (filtrados.length === 0) {
+            if (ordenesAgrupadas.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="5" class="p-4 text-center text-xs text-slate-400">No hay frascos registrados para ${formatearFechaLegible(fechaSel)}.</td>
+                        <td colspan="5" class="p-4 text-center text-xs text-slate-400">No hay órdenes registradas para ${formatearFechaLegible(fechaSel)}.</td>
                     </tr>
                 `;
                 return;
             }
 
-            tbody.innerHTML = filtrados.map(f => {
-                const badgeClass = obtenerClaseEstadoFrasco(f.estado);
+            tbody.innerHTML = ordenesAgrupadas.map(grp => {
+                const estadoConsolidado = resolverEstadoConsolidadoOrden(grp.estados);
+                const badgeClass = obtenerClaseEstadoFrasco(estadoConsolidado);
+                const muestrasTexto = grp.muestras.length > 0 ? grp.muestras.join(', ') : '-';
+
                 return `
                 <tr>
-                    <td class="p-2 sm:p-2.5 font-mono font-bold text-slate-800">${f.codigo_frasco}</td>
-                    <td class="p-2 sm:p-2.5">${f.ordenes_patologia?.paciente_nombre || '-'}</td>
-                    <td class="p-2 sm:p-2.5">${f.descripcion_anatomica}</td>
-                    <td class="p-2 sm:p-2.5 text-slate-700 font-medium">${formatearRegistradoPor(f.ordenes_patologia?.usuario_recepcion)}</td>
+                    <td class="p-2 sm:p-2.5 font-mono font-bold text-slate-800">${grp.ordenBase}</td>
+                    <td class="p-2 sm:p-2.5">${grp.pacienteNombre}</td>
+                    <td class="p-2 sm:p-2.5">${muestrasTexto}</td>
+                    <td class="p-2 sm:p-2.5 text-slate-700 font-medium">${grp.registradoPor}</td>
                     <td class="p-2 sm:p-2.5">
                         <span class="px-2 py-1 rounded-md text-[11px] sm:text-xs font-bold ${badgeClass}">
-                            ${formatearEtiqueta(f.estado)}
+                            ${formatearEtiqueta(estadoConsolidado)}
                         </span>
                     </td>
                 </tr>
@@ -1778,7 +1848,7 @@
 
             const { data } = await db
                 .from('frascos_muestra')
-                .select('*, ordenes_patologia(codigo_orden, paciente_nombre, paciente_dni, tipo_pago, monto_cobrado, cantidad_frascos_declarados, numero_comprobante, medico_remitente, usuario_recepcion, fecha_creacion, created_at)')
+                .select('*, ordenes_patologia(codigo_orden, paciente_nombre, paciente_dni, tipo_pago, monto_cobrado, cantidad_frascos_declarados, numero_comprobante, medico_remitente, usuario_recepcion)')
                 .order('id', { ascending: true })
                 .limit(200);
 
@@ -1991,79 +2061,6 @@
             document.getElementById('input-escaneo').value = '';
         }
 
-        async function enfocarReporteHuerfano(codigoFrasco) {
-            const inputCodigo = document.getElementById('huerfano_nombre');
-            const panelReporte = document.getElementById('panel-reporte-huerfano');
-            contextoReporteFrasco = null;
-
-            const { data: frasco } = await db
-                .from('frascos_muestra')
-                .select('codigo_frasco, descripcion_anatomica, ordenes_patologia(paciente_nombre, cantidad_frascos_declarados)')
-                .eq('codigo_frasco', codigoFrasco)
-                .single();
-
-            if (frasco) {
-                contextoReporteFrasco = {
-                    codigoFrasco: frasco.codigo_frasco,
-                    pacienteNombre: frasco.ordenes_patologia?.paciente_nombre || '',
-                    muestra: frasco.descripcion_anatomica || '',
-                    totalFrascos: Number(frasco.ordenes_patologia?.cantidad_frascos_declarados || 1),
-                    numFrasco: obtenerNumeroFrasco(frasco.codigo_frasco)
-                };
-            }
-
-            if (inputCodigo) {
-                inputCodigo.value = codigoFrasco;
-            }
-            if (panelReporte) {
-                panelReporte.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-            if (inputCodigo) {
-                setTimeout(() => inputCodigo.focus(), 200);
-            }
-        }
-
-        async function cargarPendientesMacro() {
-            const { data } = await db
-                .from('frascos_muestra')
-                .select('*, ordenes_patologia(paciente_nombre)')
-                .order('id', { ascending: false })
-                .limit(20);
-
-            const tbody = document.getElementById('tabla-pendientes-macro');
-            if (!tbody) return;
-            tbody.innerHTML = (data || []).map(f => {
-                const badgeClass = obtenerClaseEstadoFrasco(f.estado);
-
-                return `
-                <tr>
-                    <td class="p-2 sm:p-2.5 font-mono font-bold text-slate-800">${f.codigo_frasco}</td>
-                    <td class="p-2 sm:p-2.5">${f.ordenes_patologia?.paciente_nombre || '-'}</td>
-                    <td class="p-2 sm:p-2.5">${f.descripcion_anatomica}</td>
-                    <td class="p-2 sm:p-2.5">
-                        <span class="px-2 py-1 rounded-md text-[11px] sm:text-xs font-bold ${badgeClass}">
-                            ${formatearEtiqueta(f.estado)}
-                        </span>
-                    </td>
-                    <td class="p-2 sm:p-2.5">
-                        ${f.estado === 'EN_RECEPCION' ? `
-                            <button type="button" onclick="enfocarReporteHuerfano('${f.codigo_frasco}')" class="text-xs font-semibold bg-red-100 hover:bg-red-200 text-red-800 border border-red-300 px-2.5 py-1 rounded-md transition">
-                                Reportar
-                            </button>
-                        ` : '<span class="text-xs text-slate-400">-</span>'}
-                    </td>
-                </tr>
-            `;
-            }).join('');
-        }
-
-        document.getElementById('huerfano_nombre').addEventListener('input', () => {
-            const actual = document.getElementById('huerfano_nombre').value.trim().toUpperCase();
-            if (contextoReporteFrasco && actual !== contextoReporteFrasco.codigoFrasco) {
-                contextoReporteFrasco = null;
-            }
-        });
-
         document.getElementById('form-huerfano').addEventListener('submit', async (e) => {
             e.preventDefault();
             const operador = document.getElementById('operador_macro').value.trim() || 'Turno Macroscopía';
@@ -2127,7 +2124,7 @@
 
             const { data: frascos } = await db
                 .from('frascos_muestra')
-                .select('*, ordenes_patologia(fecha_creacion, created_at)');
+                .select('*');
             const { data: ordenes } = await db
                 .from('ordenes_patologia')
                 .select('*');
