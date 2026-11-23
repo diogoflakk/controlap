@@ -794,7 +794,10 @@
         }
 
         function obtenerFechaRegistroFrasco(frasco) {
-            const raw = frasco.fecha_creacion || frasco.created_at || frasco.ordenes_patologia?.fecha_creacion || frasco.ordenes_patologia?.created_at;
+            const raw = frasco.fecha_creacion
+                || frasco.created_at
+                || frasco.ordenes_patologia?.fecha_creacion
+                || frasco.ordenes_patologia?.created_at;
             if (!raw) return null;
             const dt = new Date(raw);
             return Number.isNaN(dt.getTime()) ? null : dt;
@@ -1116,7 +1119,7 @@
             }
 
             canalRealtime = db
-                .channel('patologia-realtime-sync-v17')
+                .channel('patologia-realtime-sync-v18')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'correlativo_frascos' }, () => {
                     actualizarIndicadorUltimoFrasco();
                 })
@@ -1722,7 +1725,7 @@
 
             const { data } = await db
                 .from('frascos_muestra')
-                .select('*, ordenes_patologia(paciente_nombre, usuario_recepcion)')
+                .select('*, ordenes_patologia(paciente_nombre, usuario_recepcion, fecha_creacion, created_at)')
                 .order('id', { ascending: true })
                 .limit(200);
 
