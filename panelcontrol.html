@@ -734,6 +734,10 @@
         }
 
         async function abrirDetalleFrasco(claveCache, mantenerAbierto = false) {
+            const drawer = document.getElementById('drawer-detalle-frasco');
+            const contenedorScrollDrawer = drawer ? drawer.querySelector('.overflow-y-auto') : null;
+            const posicionScrollAnterior = contenedorScrollDrawer ? contenedorScrollDrawer.scrollTop : 0;
+
             let grupo = cacheOrdenesDetalle.get(String(claveCache));
 
             if (!grupo && claveCache) {
@@ -778,7 +782,6 @@
             const ord = primerFrasco.ordenes_patologia || grupo.ordenData || {};
             const eco = calcularDatosEconomicosOrden(frascos, ord);
             const estadoConsolidado = resolverEstadoConsolidadoOrden(frascos.map(f => f.estado));
-            const drawer = document.getElementById('drawer-detalle-frasco');
 
             document.getElementById('drawer-codigo-frasco').innerText = grupo.ordenBase || '---';
             document.getElementById('drawer-subtitulo-orden').innerText = `Orden interna: ${ord.codigo_orden || 'Sin código de orden'}`;
@@ -880,8 +883,16 @@
 
             if (!mantenerAbierto) {
                 drawer.classList.remove('hidden');
+                if (contenedorScrollDrawer) {
+                    contenedorScrollDrawer.scrollTop = 0;
+                }
             } else if (!drawer.classList.contains('hidden')) {
                 drawer.classList.remove('hidden');
+                if (contenedorScrollDrawer) {
+                    requestAnimationFrame(() => {
+                        contenedorScrollDrawer.scrollTop = posicionScrollAnterior;
+                    });
+                }
             }
         }
 
@@ -1293,7 +1304,7 @@
             }
 
             canalRealtime = db
-                .channel('patologia-realtime-sync-v25')
+                .channel('patologia-realtime-sync-v26')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'correlativo_frascos' }, () => {
                     actualizarIndicadorUltimoFrasco();
                 })
