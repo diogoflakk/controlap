@@ -318,13 +318,13 @@
                 </div>
 
                 <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200">
-                    <h3 class="text-base sm:text-lg font-bold text-red-700 mb-2">⚠️ Registro de Incidencias</h3>
+                    <h3 class="text-base sm:text-lg font-bold text-red-700 mb-2">⚠️ REGISTRO DE INCIDENCIAS</h3>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[680px]">
                             <thead>
                                 <tr class="bg-red-50 text-black border-b border-red-200">
                                     <th class="p-2 sm:p-3">Fecha / Hora</th>
-                                    <th class="p-2 sm:p-3">Código / Rotulado</th>
+                                    <th class="p-2 sm:p-3">Código</th>
                                     <th class="p-2 sm:p-3">¿Qué pasó?</th>
                                     <th class="p-2 sm:p-3">Origen</th>
                                     <th class="p-2 sm:p-3">Estado Auditoría</th>
@@ -341,12 +341,12 @@
                 <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200">
                     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3">
                         <div>
-                            <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-700">Estado de Frascos Registrados — Gerencia</h3>
+                            <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-700">Estado de Frascos Registrados</h3>
                             <p id="subtitulo-fecha-gerencia" class="text-[11px] text-slate-500">Mostrando registros del día • Orden: más antiguo al más nuevo</p>
                         </div>
                         <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-wrap">
                             <div class="flex items-center gap-1.5">
-                                <input type="date" id="filtro-fecha-gerencia" onchange="cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia')" class="border border-slate-300 rounded-lg px-2.5 py-2 sm:py-1.5 text-xs font-semibold">
+                                <input type="date" id="filtro-fecha-gerencia" onchange="alCambiarFechaGerencia()" class="border border-slate-300 rounded-lg px-2.5 py-2 sm:py-1.5 text-xs font-semibold">
                                 <button type="button" onclick="establecerHoyGerencia()" class="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-lg px-2.5 py-2 sm:py-1.5 text-xs font-semibold transition shrink-0">
                                     Hoy
                                 </button>
@@ -437,10 +437,49 @@
             cargarRecepcionVivo();
         }
 
+        function alCambiarFechaGerencia() {
+            cargarAuditoria();
+            cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia');
+        }
+
         function establecerHoyGerencia() {
             const inputGer = document.getElementById('filtro-fecha-gerencia');
             if (inputGer) inputGer.value = obtenerFechaLocalYYYYMMDD();
-            cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia');
+            alCambiarFechaGerencia();
+        }
+
+        function perteneceRegistroAFecha(registro, fechaYYYYMMDD, camposFecha = []) {
+            const candidatos = [
+                ...camposFecha,
+                'fecha_creacion',
+                'created_at',
+                'fecha_deteccion',
+                'fecha_registro'
+            ];
+
+            for (const campo of candidatos) {
+                const valor = registro?.[campo];
+                if (valor) {
+                    const dt = new Date(valor);
+                    if (!Number.isNaN(dt.getTime())) {
+                        return obtenerFechaLocalYYYYMMDD(dt) === fechaYYYYMMDD;
+                    }
+                }
+            }
+
+            if (registro?.ordenes_patologia) {
+                for (const campo of ['fecha_creacion', 'created_at', 'fecha_registro']) {
+                    const valor = registro.ordenes_patologia[campo];
+                    if (valor) {
+                        const dt = new Date(valor);
+                        if (!Number.isNaN(dt.getTime())) {
+                            return obtenerFechaLocalYYYYMMDD(dt) === fechaYYYYMMDD;
+                        }
+                    }
+                }
+            }
+
+            return fechaYYYYMMDD === obtenerFechaLocalYYYYMMDD();
         }
 
         function obtenerFechaRegistroFrasco(frasco) {
@@ -1525,18 +1564,31 @@
         });
 
         async function cargarAuditoria() {
-            const { data: frascos } = await db.from('frascos_muestra').select('estado');
-            const { data: ordenes } = await db.from('ordenes_patologia').select('monto_cobrado');
-            const { data: incidencias } = await db.from('incidencias_huerfanos').select('*').order('fecha_deteccion', { ascending: false });
+            const fechaSel = document.getElementById('filtro-fecha-gerencia')?.value || obtenerFechaLocalYYYYMMDD();
 
-            const totalReg = frascos?.length || 0;
-            const totalEsc = frascos?.filter(f => f.estado === 'ESCANEADO_MACROSCOPIA').length || 0;
-            const frascosPendReg = frascos?.filter(f => f.estado === 'PENDIENTE_REGULARIZAR').length || 0;
-            const huerfPendReg = incidencias?.filter(i => i.estado_auditoria === 'PENDIENTE_REGULARIZAR').length || 0;
+            const { data: frascos } = await db
+                .from('frascos_muestra')
+                .select('*, ordenes_patologia(fecha_creacion, created_at)');
+            const { data: ordenes } = await db
+                .from('ordenes_patologia')
+                .select('*');
+            const { data: incidencias } = await db
+                .from('incidencias_huerfanos')
+                .select('*')
+                .order('fecha_deteccion', { ascending: false });
+
+            const frascosDia = (frascos || []).filter(f => perteneceAFechaSeleccionada(f, fechaSel));
+            const ordenesDia = (ordenes || []).filter(o => perteneceRegistroAFecha(o, fechaSel, ['fecha_creacion', 'created_at', 'fecha_registro']));
+            const incidenciasDia = (incidencias || []).filter(i => perteneceRegistroAFecha(i, fechaSel, ['fecha_deteccion', 'created_at', 'fecha_creacion']));
+
+            const totalReg = frascosDia.length;
+            const totalEsc = frascosDia.filter(f => f.estado === 'ESCANEADO_MACROSCOPIA').length;
+            const frascosPendReg = frascosDia.filter(f => f.estado === 'PENDIENTE_REGULARIZAR').length;
+            const huerfPendReg = incidenciasDia.filter(i => i.estado_auditoria === 'PENDIENTE_REGULARIZAR').length;
             const totalHuerf = huerfPendReg + frascosPendReg;
             
-            const dineroCaja = (ordenes || []).reduce((acc, o) => acc + Number(o.monto_cobrado), 0);
-            const dineroRegularizado = (incidencias || [])
+            const dineroCaja = ordenesDia.reduce((acc, o) => acc + Number(o.monto_cobrado || 0), 0);
+            const dineroRegularizado = incidenciasDia
                 .filter(i => i.estado_auditoria === 'REGULARIZADO_PAGO')
                 .reduce((acc, i) => acc + Number(i.monto_regularizado || 0), 0);
             const dineroTotalReal = dineroCaja + dineroRegularizado;
@@ -1550,7 +1602,17 @@
 
             const tbody = document.getElementById('tabla-incidencias');
             if (!tbody) return;
-            tbody.innerHTML = (incidencias || []).map(inc => {
+
+            if (incidenciasDia.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="p-4 text-center text-xs text-slate-400">No hay incidencias registradas para ${formatearFechaLegible(fechaSel)}.</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = incidenciasDia.map(inc => {
                 const esRegularizado = inc.estado_auditoria === 'REGULARIZADO_PAGO';
                 const esPendiente = inc.estado_auditoria === 'PENDIENTE_REGULARIZAR';
                 const badgeClass = esPendiente
