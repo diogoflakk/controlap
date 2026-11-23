@@ -344,7 +344,7 @@
                         <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[540px]">
                             <thead>
                                 <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
-                                    <th class="p-2 sm:p-2.5">Orden</th>
+                                    <th class="p-2 sm:p-2.5">Orden (CE-XXX)</th>
                                     <th class="p-2 sm:p-2.5">Paciente</th>
                                     <th class="p-2 sm:p-2.5">Muestras</th>
                                     <th class="p-2 sm:p-2.5">Registrado Por</th>
@@ -366,7 +366,7 @@
                         <div class="flex flex-col sm:flex-row gap-2 sm:gap-2.5 mb-3">
                             <input type="text" id="operador_macro" class="border border-slate-300 rounded-lg p-2.5 sm:p-3 text-sm w-full sm:w-44" placeholder="Patólogo / Tecnólogo">
                             <div class="flex gap-2 flex-1 min-w-0">
-                                <input type="text" id="input-escaneo" class="flex-1 min-w-0 border-2 border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-lg p-2.5 sm:p-3 text-sm sm:text-base font-mono uppercase" placeholder="Código (Ej: CE-001-1)">
+                                <input type="text" id="input-escaneo" class="flex-1 min-w-0 border-2 border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-lg p-2.5 sm:p-3 text-sm sm:text-base font-mono uppercase" placeholder="Código (Ej: CE-001 o CE-001-1)">
                                 <button type="button" onclick="toggleCamaraEscaneo()" id="btn-camara" title="Escanear con cámara" class="border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50 font-semibold px-3 sm:px-3.5 py-2.5 sm:py-3 rounded-lg transition flex items-center justify-center shrink-0">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -400,7 +400,7 @@
                         <form id="form-huerfano" class="space-y-3">
                             <div>
                                 <label class="block text-xs font-bold text-red-900 mb-1">Código del frasco *</label>
-                                <input type="text" id="huerfano_nombre" required class="w-full border border-red-300 rounded-lg p-2.5 text-sm font-mono uppercase" placeholder="Ej: CE-001-1 o SIN-CODIGO">
+                                <input type="text" id="huerfano_nombre" required class="w-full border border-red-300 rounded-lg p-2.5 text-sm font-mono uppercase" placeholder="Ej: CE-001 o CE-001-1">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-red-900 mb-1">¿Qué pasó en el frasco? *</label>
@@ -448,10 +448,10 @@
                         <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[740px]">
                             <thead>
                                 <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
-                                    <th class="p-2 sm:p-2.5">Orden</th>
+                                    <th class="p-2 sm:p-2.5">Orden (CE-XXX)</th>
                                     <th class="p-2 sm:p-2.5">Paciente</th>
                                     <th class="p-2 sm:p-2.5">Muestras</th>
-                                    <th class="p-2 sm:p-2.5">N° Boleta / Comprobante</th>
+                                    <th class="p-2 sm:p-2.5">N° Boleta / Comprobante *</th>
                                     <th class="p-2 sm:p-2.5">Médico Remitente</th>
                                     <th class="p-2 sm:p-2.5">Registrado Por</th>
                                     <th class="p-2 sm:p-2.5">Estado Macroscopía</th>
@@ -549,10 +549,10 @@
                         <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[740px]">
                             <thead>
                                 <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
-                                    <th class="p-2 sm:p-2.5">Orden</th>
+                                    <th class="p-2 sm:p-2.5">Orden (CE-XXX)</th>
                                     <th class="p-2 sm:p-2.5">Paciente</th>
                                     <th class="p-2 sm:p-2.5">Muestras</th>
-                                    <th class="p-2 sm:p-2.5">N° Boleta / Comprobante</th>
+                                    <th class="p-2 sm:p-2.5">N° Boleta / Comprobante *</th>
                                     <th class="p-2 sm:p-2.5">Médico Remitente</th>
                                     <th class="p-2 sm:p-2.5">Registrado Por</th>
                                     <th class="p-2 sm:p-2.5">Estado Macroscopía</th>
@@ -938,17 +938,23 @@
             return obtenerFechaLocalYYYYMMDD(dt) === fechaYYYYMMDD;
         }
 
+        // Si cantidad === 1: devuelve ["CE-XXX"] (sin -1). Si cantidad > 1: devuelve ["CE-XXX-1", "CE-XXX-2", ...].
         function formatearCodigosSubfrascos(codigosDevueltos, cantidadEsperada, codigoManual = '') {
             const lista = Array.isArray(codigosDevueltos) ? codigosDevueltos.map(c => String(c || '').trim().toUpperCase()) : [];
             if (lista.length === 0) return [];
+
+            const matchBase = lista[0].match(/^([A-Z]{2}-\d{3})/);
+            const base = matchBase ? matchBase[1] : (codigoManual || lista[0].replace(/-\d+$/, ''));
+
+            if (cantidadEsperada === 1) {
+                return [base];
+            }
 
             const yaTienenSubindice = lista.every(c => /^[A-Z]{2}-\d{3}-\d+$/.test(c));
             if (yaTienenSubindice && lista.length === cantidadEsperada) {
                 return lista;
             }
 
-            const matchBase = lista[0].match(/^([A-Z]{2}-\d{3})/);
-            const base = matchBase ? matchBase[1] : (codigoManual || lista[0]);
             return Array.from({ length: cantidadEsperada }, (_, idx) => `${base}-${idx + 1}`);
         }
 
@@ -1253,7 +1259,7 @@
             }
 
             canalRealtime = db
-                .channel('patologia-realtime-sync-v21')
+                .channel('patologia-realtime-sync-v22')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'correlativo_frascos' }, () => {
                     actualizarIndicadorUltimoFrasco();
                 })
@@ -1654,7 +1660,9 @@
             areaImpresion.innerHTML = frascos.map((f, i) => {
                 const ord = f.ordenes_patologia || ordenBase || {};
                 const matchNum = f.codigo_frasco.match(/-(\d+)$/i);
-                const etiquetaFrasco = matchNum ? `FRASCO ${matchNum[1]}/${total}` : `FRASCO ${i + 1}/${total}`;
+                const etiquetaFrasco = total === 1
+                    ? 'FRASCO ÚNICO'
+                    : (matchNum ? `FRASCO ${matchNum[1]}/${total}` : `FRASCO ${i + 1}/${total}`);
 
                 return `
                     <div class="border-2 border-slate-900 p-3 rounded-lg bg-white text-xs font-mono">
