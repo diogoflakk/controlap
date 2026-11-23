@@ -347,7 +347,7 @@
                         <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[540px]">
                             <thead>
                                 <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
-                                    <th class="p-2 sm:p-2.5">Orden (CE-XXX)</th>
+                                    <th class="p-2 sm:p-2.5">Orden</th>
                                     <th class="p-2 sm:p-2.5">Paciente</th>
                                     <th class="p-2 sm:p-2.5">Muestras</th>
                                     <th class="p-2 sm:p-2.5">Registrado Por</th>
@@ -466,10 +466,10 @@
                         <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[740px]">
                             <thead>
                                 <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
-                                    <th class="p-2 sm:p-2.5">Orden (CE-XXX)</th>
+                                    <th class="p-2 sm:p-2.5">Orden</th>
                                     <th class="p-2 sm:p-2.5">Paciente</th>
                                     <th class="p-2 sm:p-2.5">Muestras</th>
-                                    <th class="p-2 sm:p-2.5">N° Boleta / Comprobante *</th>
+                                    <th class="p-2 sm:p-2.5">N° Boleta / Comprobante</th>
                                     <th class="p-2 sm:p-2.5">Médico Remitente</th>
                                     <th class="p-2 sm:p-2.5">Registrado Por</th>
                                     <th class="p-2 sm:p-2.5">Estado Macroscopía</th>
@@ -567,10 +567,10 @@
                         <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[740px]">
                             <thead>
                                 <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
-                                    <th class="p-2 sm:p-2.5">Orden (CE-XXX)</th>
+                                    <th class="p-2 sm:p-2.5">Orden</th>
                                     <th class="p-2 sm:p-2.5">Paciente</th>
                                     <th class="p-2 sm:p-2.5">Muestras</th>
-                                    <th class="p-2 sm:p-2.5">N° Boleta / Comprobante *</th>
+                                    <th class="p-2 sm:p-2.5">N° Boleta / Comprobante</th>
                                     <th class="p-2 sm:p-2.5">Médico Remitente</th>
                                     <th class="p-2 sm:p-2.5">Registrado Por</th>
                                     <th class="p-2 sm:p-2.5">Estado Macroscopía</th>
@@ -600,6 +600,9 @@
         const STORAGE_CLAVE_CORTESIA_TS = 'patologiacontrol_clave_cortesia_ts';
         const INTERVALO_AUTO_CLAVE_MS = 2 * 60 * 60 * 1000; // 2 horas
 
+        const STORAGE_RECORDAR = 'patologiacontrol_recordar_sesion';
+        const SESSION_PESTANA_ACTIVA = 'patologiacontrol_pestana_activa';
+
         let rolActual = null;
         let nombreUsuarioActual = null;
         let pestanasPermitidas = [];
@@ -617,6 +620,40 @@
         let cacheOrdenesDetalle = new Map();
         let claveDrawerAbierta = null;
         let historialEscaneosTurno = [];
+
+        function leerPreferenciaRecordar() {
+            try {
+                return localStorage.getItem(STORAGE_RECORDAR) === '1';
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function limpiarPreferenciaRecordar() {
+            try {
+                localStorage.setItem(STORAGE_RECORDAR, '0');
+            } catch (_) {}
+        }
+
+        function marcarPestanaActiva() {
+            try {
+                sessionStorage.setItem(SESSION_PESTANA_ACTIVA, '1');
+            } catch (_) {}
+        }
+
+        function esPestanaActiva() {
+            try {
+                return sessionStorage.getItem(SESSION_PESTANA_ACTIVA) === '1';
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function limpiarMarcaPestanaActiva() {
+            try {
+                sessionStorage.removeItem(SESSION_PESTANA_ACTIVA);
+            } catch (_) {}
+        }
 
         function actualizarTextoSiCambia(el, nuevoTexto) {
             if (!el) return;
@@ -1340,7 +1377,7 @@
                 if (haExpiradoClave2Horas()) {
                     await actualizarClaveCortesiaPanel(true, false);
                 }
-            }, 60 * 1000); // Revisa cada minuto si ya pasaron 2 horas
+            }, 60 * 1000);
         }
 
         async function copiarClaveCortesia() {
@@ -1619,6 +1656,8 @@
                 canalRealtime = null;
             }
             nombreUsuarioActual = null;
+            limpiarPreferenciaRecordar();
+            limpiarMarcaPestanaActiva();
             await db.auth.signOut();
             window.location.href = 'login.html';
         }
@@ -1627,11 +1666,23 @@
             generarInputsFrascos();
             inicializarFiltrosFechaEstadoVivo();
             renderizarHistorialEscaneo();
+
             const { data: { session } } = await db.auth.getSession();
             if (!session?.user) {
                 window.location.href = 'login.html';
                 return;
             }
+
+            const recordarGuardado = leerPreferenciaRecordar();
+            const pestanaActiva = esPestanaActiva();
+
+            if (!recordarGuardado && !pestanaActiva) {
+                await db.auth.signOut();
+                window.location.href = 'login.html';
+                return;
+            }
+
+            marcarPestanaActiva();
             await iniciarSesionConUsuario(session.user);
         });
 
