@@ -334,7 +334,7 @@
                     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2.5 mb-3">
                         <div>
                             <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-600">Órdenes Registradas (CE-XXX)</h3>
-                            <p id="subtitulo-fecha-recepcion" class="text-[11px] text-slate-500">Mostrando registros del día • Orden: más antiguo al más nuevo</p>
+                            <p id="subtitulo-fecha-recepcion" class="text-[11px] text-slate-500">Mostrando registros del día • Orden: más nuevo al más antiguo</p>
                         </div>
                         <div class="flex items-center gap-2">
                             <input type="date" id="filtro-fecha-recepcion" onchange="cargarRecepcionVivo()" class="border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-semibold">
@@ -444,7 +444,7 @@
                     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3">
                         <div>
                             <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-700">Estado de Órdenes Registradas (CE-XXX)</h3>
-                            <p id="subtitulo-fecha-macro" class="text-[11px] text-slate-500">Mostrando registros del día • Orden: más antiguo al más nuevo</p>
+                            <p id="subtitulo-fecha-macro" class="text-[11px] text-slate-500">Mostrando registros del día • Orden: más nuevo al más antiguo</p>
                         </div>
                         <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-wrap">
                             <div class="flex items-center gap-1.5">
@@ -545,7 +545,7 @@
                     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3">
                         <div>
                             <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-700">Estado de Órdenes Registradas (CE-XXX)</h3>
-                            <p id="subtitulo-fecha-gerencia" class="text-[11px] text-slate-500">Mostrando registros del día • Orden: más antiguo al más nuevo</p>
+                            <p id="subtitulo-fecha-gerencia" class="text-[11px] text-slate-500">Mostrando registros del día • Orden: más nuevo al más antiguo</p>
                         </div>
                         <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-wrap">
                             <div class="flex items-center gap-1.5">
@@ -883,7 +883,7 @@
                         .from('frascos_muestra')
                         .select('*, ordenes_patologia(codigo_orden, paciente_nombre, paciente_dni, tipo_pago, monto_cobrado, cantidad_frascos_declarados, numero_comprobante, medico_remitente, usuario_recepcion)')
                         .ilike('codigo_frasco', `${ordenBaseConsulta}%`)
-                        .order('id', { ascending: true });
+                        .order('id', { ascending: false });
 
                     if (frascosDirectos && frascosDirectos.length > 0) {
                         const agrupadas = agruparFrascosPorOrden(frascosDirectos);
@@ -2185,9 +2185,9 @@
                 if (matchA && matchB) {
                     const numA = parseInt(matchA[2], 10);
                     const numB = parseInt(matchB[2], 10);
-                    if (numA !== numB) return numA - numB;
+                    if (numA !== numB) return numB - numA;
                 }
-                return a.primerId - b.primerId;
+                return b.primerId - a.primerId;
             });
         }
 
@@ -2195,13 +2195,13 @@
             const fechaSel = document.getElementById('filtro-fecha-recepcion')?.value || obtenerFechaLocalYYYYMMDD();
             const subtitulo = document.getElementById('subtitulo-fecha-recepcion');
             if (subtitulo) {
-                actualizarTextoSiCambia(subtitulo, `Mostrando órdenes ${formatearFechaLegible(fechaSel)} • Orden: más antiguo al más nuevo`);
+                actualizarTextoSiCambia(subtitulo, `Mostrando órdenes ${formatearFechaLegible(fechaSel)} • Orden: más nuevo al más antiguo`);
             }
 
             const { data } = await db
                 .from('frascos_muestra')
                 .select('*, ordenes_patologia(paciente_nombre, usuario_recepcion)')
-                .order('id', { ascending: true })
+                .order('id', { ascending: false })
                 .limit(200);
 
             const frascosDia = (data || []).filter(f => perteneceAFechaSeleccionada(f, fechaSel));
@@ -2242,7 +2242,7 @@
             const fechaSel = document.getElementById(`filtro-fecha-${prefijoFiltro}`)?.value || obtenerFechaLocalYYYYMMDD();
             const subtitulo = document.getElementById(`subtitulo-fecha-${prefijoFiltro}`);
             if (subtitulo) {
-                actualizarTextoSiCambia(subtitulo, `Mostrando órdenes ${formatearFechaLegible(fechaSel)} • Orden: más antiguo al más nuevo`);
+                actualizarTextoSiCambia(subtitulo, `Mostrando órdenes ${formatearFechaLegible(fechaSel)} • Orden: más nuevo al más antiguo`);
             }
 
             const texto = (document.getElementById(`filtro-texto-${prefijoFiltro}`)?.value || '').trim().toLowerCase();
@@ -2251,7 +2251,7 @@
             const { data } = await db
                 .from('frascos_muestra')
                 .select('*, ordenes_patologia(codigo_orden, paciente_nombre, paciente_dni, tipo_pago, monto_cobrado, cantidad_frascos_declarados, numero_comprobante, medico_remitente, usuario_recepcion)')
-                .order('id', { ascending: true })
+                .order('id', { ascending: false })
                 .limit(200);
 
             const frascosDia = (data || []).filter(f => perteneceAFechaSeleccionada(f, fechaSel));
