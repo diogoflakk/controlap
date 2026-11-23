@@ -85,15 +85,15 @@
                                     <input type="text" id="paciente_nombre" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" placeholder="Ej: María Gómez Pérez">
                                 </div>
                                 <div>
-                                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">DNI / Documento *</label>
-                                    <input type="text" id="paciente_dni" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" placeholder="Ej: 45891234">
+                                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">DNI / Documento <span class="text-[10px] font-normal normal-case text-slate-400">(Opcional)</span></label>
+                                    <input type="text" id="paciente_dni" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" placeholder="Ej: 45891234">
                                 </div>
                             </div>
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 items-start bg-slate-50 p-3 sm:p-4 rounded-lg border border-slate-200">
                                 <div class="min-w-0 flex flex-col">
                                     <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1.5 leading-tight truncate">Método de Pago *</label>
-                                    <select id="tipo_pago" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm">
+                                    <select id="tipo_pago" required onchange="alCambiarTipoPago()" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm">
                                         <option value="EFECTIVO">Efectivo</option>
                                         <option value="TARJETA">Tarjeta POS</option>
                                         <option value="TRANSFERENCIA">Transferencia / Yape / Plin</option>
@@ -134,9 +134,8 @@
                                 <span id="total-orden-preview" class="text-lg sm:text-xl font-black text-emerald-700">S/ 0.00</span>
                             </div>
 
-                            <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 pt-2">
-                                <input type="text" id="usuario_recepcion" required class="border border-slate-300 rounded-lg p-2.5 text-sm w-full sm:w-52" placeholder="Tu nombre (Recepción)">
-                                <button type="submit" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-400 font-semibold px-5 py-2.5 rounded-lg shadow-sm transition text-sm">
+                            <div class="flex justify-end pt-2">
+                                <button type="submit" class="w-full sm:w-auto bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-400 font-semibold px-5 py-2.5 rounded-lg shadow-sm transition text-sm">
                                     REGISTRAR Y GENERAR ETIQUETAS
                                 </button>
                             </div>
@@ -395,6 +394,7 @@
         const STORAGE_CLAVE_CORTESIA = 'patologiacontrol_clave_cortesia_activa';
 
         let rolActual = null;
+        let nombreUsuarioActual = null;
         let pestanasPermitidas = [];
         let canalRealtime = null;
         let toastTimeout = null;
@@ -406,6 +406,28 @@
 
         function esRolGerencia() {
             return rolActual === 'GERENCIA';
+        }
+
+        function formatearRegistradoPor(nombre) {
+            if (!nombre) return '-';
+            const limpio = String(nombre).trim();
+            const sinTildes = limpio.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+            if (sinTildes.startsWith('danalys')) {
+                return 'Danalys C.';
+            }
+            if (sinTildes.startsWith('maria')) {
+                return 'María V.';
+            }
+            return limpio;
+        }
+
+        function obtenerNombreUsuarioActivo() {
+            const enMemoria = String(nombreUsuarioActual || '').trim();
+            if (enMemoria) return formatearRegistradoPor(enMemoria);
+            const enDom = String(document.getElementById('info-usuario')?.innerText || '').trim();
+            if (enDom && enDom !== 'Usuario') return formatearRegistradoPor(enDom);
+            return rolActual || 'Usuario';
         }
 
         function obtenerFechaLocalYYYYMMDD(fecha = new Date()) {
@@ -651,7 +673,7 @@
             }
 
             const ahoraIso = new Date().toISOString();
-            const usuarioNombre = document.getElementById('info-usuario')?.innerText?.trim() || rolActual || 'Gerencia';
+            const usuarioNombre = obtenerNombreUsuarioActivo();
 
             const { data, error } = await db
                 .from('configuracion_cortesia')
@@ -694,20 +716,6 @@
             if (estado === 'EN_RECEPCION') return 'bg-amber-100 text-amber-800';
             if (estado === 'PENDIENTE_REGULARIZAR') return 'bg-red-100 text-red-700';
             return 'bg-emerald-700 text-white';
-        }
-
-        function formatearRegistradoPor(nombre) {
-            if (!nombre) return '-';
-            const limpio = String(nombre).trim();
-            const sinTildes = limpio.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-
-            if (sinTildes.startsWith('danalys')) {
-                return 'Danalys C.';
-            }
-            if (sinTildes.startsWith('maria')) {
-                return 'María V.';
-            }
-            return limpio;
         }
 
         function extraerCodigoFrasco(texto) {
@@ -856,6 +864,7 @@
             }
 
             rolActual = String(perfil.rol || '').trim().toUpperCase();
+            nombreUsuarioActual = formatearRegistradoPor(perfil.nombre_completo) || rolActual;
             pestanasPermitidas = PERMISOS_POR_ROL[rolActual] || [];
 
             if (pestanasPermitidas.length === 0) {
@@ -866,11 +875,11 @@
             }
 
             document.getElementById('app-principal').classList.remove('hidden');
-            document.getElementById('info-usuario').innerText = perfil.nombre_completo;
+            document.getElementById('info-usuario').innerText = nombreUsuarioActual;
             document.getElementById('info-rol').innerText = rolActual;
             const movilUsuario = document.getElementById('info-usuario-movil');
             const movilRol = document.getElementById('info-rol-movil');
-            if (movilUsuario) movilUsuario.innerText = perfil.nombre_completo;
+            if (movilUsuario) movilUsuario.innerText = nombreUsuarioActual;
             if (movilRol) movilRol.innerText = rolActual;
 
             ['recepcion', 'macroscopia', 'auditoria'].forEach(tab => {
@@ -898,6 +907,7 @@
                 await db.removeChannel(canalRealtime);
                 canalRealtime = null;
             }
+            nombreUsuarioActual = null;
             await db.auth.signOut();
             window.location.href = 'login.html';
         }
@@ -945,25 +955,67 @@
             }
         }
 
-        function alternarClaveCortesia(idx) {
+        function esMetodoSeguroConvenio() {
+            return document.getElementById('tipo_pago')?.value === 'SEGURO';
+        }
+
+        function alCambiarTipoPago() {
+            const esSeguro = esMetodoSeguroConvenio();
+            const selects = Array.from(document.getElementsByName('estado_pago_frasco[]'));
+
+            selects.forEach((select, idx) => {
+                const i = idx + 1;
+                const optSeguro = select.querySelector('option[value="SEGURO_CONVENIO"]');
+                if (optSeguro) {
+                    optSeguro.hidden = !esSeguro;
+                    optSeguro.disabled = !esSeguro;
+                }
+
+                if (esSeguro) {
+                    select.value = 'SEGURO_CONVENIO';
+                } else if (select.value === 'SEGURO_CONVENIO') {
+                    select.value = 'PAGADO';
+                }
+
+                alternarOpcionesFrasco(i);
+            });
+
+            actualizarTotalOrden();
+        }
+
+        function alternarOpcionesFrasco(idx) {
             const select = document.getElementById(`estado_pago_frasco_${idx}`);
             const wrapClave = document.getElementById(`wrap_clave_cortesia_${idx}`);
             const inputClave = document.getElementById(`clave_cortesia_${idx}`);
-            if (!select || !wrapClave || !inputClave) return;
+            const wrapDescuento = document.getElementById(`wrap_descuento_frasco_${idx}`);
+            const inputDescuento = document.getElementById(`descuento_frasco_${idx}`);
+            if (!select) return;
 
-            if (select.value === 'CORTESIA_AUTORIZADA') {
-                wrapClave.classList.remove('hidden');
-                inputClave.required = true;
-            } else {
-                wrapClave.classList.add('hidden');
-                inputClave.required = false;
-                inputClave.value = '';
+            if (wrapClave && inputClave) {
+                if (select.value === 'CORTESIA_AUTORIZADA') {
+                    wrapClave.classList.remove('hidden');
+                    inputClave.required = true;
+                } else {
+                    wrapClave.classList.add('hidden');
+                    inputClave.required = false;
+                    inputClave.value = '';
+                }
+            }
+
+            if (wrapDescuento && inputDescuento) {
+                if (select.value === 'SEGURO_CONVENIO') {
+                    wrapDescuento.classList.remove('hidden');
+                } else {
+                    wrapDescuento.classList.add('hidden');
+                    inputDescuento.value = '';
+                }
             }
         }
 
         function generarInputsFrascos() {
             const cant = parseInt(document.getElementById('cantidad_frascos').value) || 1;
             const contenedor = document.getElementById('contenedor-frascos');
+            const esSeguro = esMetodoSeguroConvenio();
             contenedor.innerHTML = `<label class="block text-xs font-bold uppercase text-slate-700">Desglose por frasco (${cant} etiquetas):</label>`;
             
             for (let i = 1; i <= cant; i++) {
@@ -974,14 +1026,25 @@
                                 <input type="text" name="desc_frasco[]" required class="w-full border border-slate-300 rounded-md p-2 text-sm" placeholder="Frasco ${i}: Muestra">
                             </div>
                             <div class="md:col-span-4">
-                                <select id="estado_pago_frasco_${i}" name="estado_pago_frasco[]" onchange="alternarClaveCortesia(${i}); actualizarTotalOrden();" class="w-full border border-slate-300 rounded-md p-2 text-xs font-semibold">
-                                    <option value="PAGADO">💰 Pagado Individual</option>
+                                <select id="estado_pago_frasco_${i}" name="estado_pago_frasco[]" onchange="alternarOpcionesFrasco(${i}); actualizarTotalOrden();" class="w-full border border-slate-300 rounded-md p-2 text-xs font-semibold">
+                                    <option value="PAGADO" ${!esSeguro ? 'selected' : ''}>💰 Pagado Individual</option>
                                     <option value="INCLUIDO_PAQUETE">📦 Incluido en Paquete (S/ 0)</option>
                                     <option value="CORTESIA_AUTORIZADA">🎟️ Cortesía Autorizada (S/ 0)</option>
+                                    <option value="SEGURO_CONVENIO" ${esSeguro ? 'selected' : ''} ${!esSeguro ? 'hidden disabled' : ''}>🏥 Seguro / Convenio</option>
                                 </select>
                             </div>
                             <div class="md:col-span-3">
                                 <input type="number" step="0.01" min="0" name="monto_frasco[]" oninput="actualizarTotalOrden()" required class="w-full border border-slate-300 rounded-md p-2 text-sm font-mono text-right" placeholder="S/ 0.00">
+                            </div>
+                        </div>
+                        <div id="wrap_descuento_frasco_${i}" class="${esSeguro ? '' : 'hidden'} bg-sky-50 border border-sky-200 rounded-md p-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div class="flex flex-col">
+                                <label for="descuento_frasco_${i}" class="text-xs font-bold text-sky-900">🏷️ Descuento Seguro / Convenio (Frasco ${i}):</label>
+                                <span id="neto_frasco_${i}" class="text-[11px] font-semibold text-sky-700">Neto frasco: S/ 0.00</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-xs font-bold text-sky-900">- S/</span>
+                                <input type="number" step="0.01" min="0" id="descuento_frasco_${i}" name="descuento_frasco[]" oninput="actualizarTotalOrden()" class="border border-sky-300 rounded-md px-2.5 py-1.5 text-xs font-mono text-right w-full sm:w-36" placeholder="0.00">
                             </div>
                         </div>
                         <div id="wrap_clave_cortesia_${i}" class="hidden bg-amber-50 border border-amber-300 rounded-md p-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -997,15 +1060,29 @@
         function actualizarTotalOrden() {
             const estados = Array.from(document.getElementsByName('estado_pago_frasco[]'));
             const montos = Array.from(document.getElementsByName('monto_frasco[]'));
+            const descuentos = Array.from(document.getElementsByName('descuento_frasco[]'));
             let total = 0;
 
             montos.forEach((input, idx) => {
-                if (estados[idx].value !== 'PAGADO') {
+                const estado = estados[idx].value;
+                const i = idx + 1;
+
+                if (estado === 'INCLUIDO_PAQUETE' || estado === 'CORTESIA_AUTORIZADA') {
                     input.value = '0.00';
                     input.readOnly = true;
                 } else {
                     input.readOnly = false;
-                    total += parseFloat(input.value) || 0;
+                    const montoBase = parseFloat(input.value) || 0;
+                    const desc = estado === 'SEGURO_CONVENIO' ? (parseFloat(descuentos[idx]?.value) || 0) : 0;
+                    const neto = Math.max(0, montoBase - desc);
+                    total += neto;
+
+                    const netoEl = document.getElementById(`neto_frasco_${i}`);
+                    if (netoEl) {
+                        netoEl.innerText = desc > 0
+                            ? `Neto frasco: S/ ${neto.toFixed(2)} (Descuento: -S/ ${desc.toFixed(2)})`
+                            : `Neto frasco: S/ ${neto.toFixed(2)}`;
+                    }
                 }
             });
 
@@ -1114,7 +1191,8 @@
             const codigoFcoManual = String(document.getElementById('codigo_fco_manual')?.value || '').trim().toUpperCase();
             const descripciones = Array.from(document.getElementsByName('desc_frasco[]')).map(i => i.value);
             const estadosPago = Array.from(document.getElementsByName('estado_pago_frasco[]')).map(i => i.value);
-            const montosFrasco = Array.from(document.getElementsByName('monto_frasco[]')).map(i => parseFloat(i.value) || 0);
+            const montosBaseFrasco = Array.from(document.getElementsByName('monto_frasco[]')).map(i => parseFloat(i.value) || 0);
+            const descuentosFrasco = Array.from(document.getElementsByName('descuento_frasco[]')).map(i => parseFloat(i.value) || 0);
             const clavesCortesia = Array.from(document.getElementsByName('clave_cortesia[]')).map(i => normalizarClaveCortesia(i.value));
 
             if (codigoFcoManual && !/^[A-Z]{2}-\d{3}$/.test(codigoFcoManual)) {
@@ -1132,13 +1210,27 @@
                 }
             }
 
+            const montosNetosFrasco = [];
+
             for (let i = 0; i < cant; i++) {
-                if (estadosPago[i] === 'PAGADO' && montosFrasco[i] <= 0) {
+                const est = estadosPago[i];
+                const base = montosBaseFrasco[i];
+                const desc = est === 'SEGURO_CONVENIO' ? descuentosFrasco[i] : 0;
+
+                if (est === 'PAGADO' && base <= 0) {
                     return alert(`⚠️ Error en Frasco ${i + 1}: Está marcado como "Pagado Individual" pero tiene monto S/ 0.00.`);
                 }
-                if (estadosPago[i] === 'CORTESIA_AUTORIZADA' && clavesCortesia[i] !== claveVigente) {
+                if (est === 'SEGURO_CONVENIO' && desc > base) {
+                    return alert(`⚠️ Error en Frasco ${i + 1}: El descuento (S/ ${desc.toFixed(2)}) no puede ser mayor al monto del frasco (S/ ${base.toFixed(2)}).`);
+                }
+                if (est === 'CORTESIA_AUTORIZADA' && clavesCortesia[i] !== claveVigente) {
                     return alert(`🔐 Clave de cortesía incorrecta en Frasco ${i + 1}. Ingresaste "${clavesCortesia[i] || '(vacío)'}". Solicita la clave vigente en Gerencia.`);
                 }
+
+                const neto = (est === 'INCLUIDO_PAQUETE' || est === 'CORTESIA_AUTORIZADA')
+                    ? 0
+                    : Math.max(0, base - desc);
+                montosNetosFrasco.push(neto);
             }
 
             const { data: codigosReservados, error: errCodigos } = await db
@@ -1153,28 +1245,36 @@
 
             const totalOrden = actualizarTotalOrden();
             const correlativo = `AP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+            const usuarioRegistro = obtenerNombreUsuarioActivo();
+            const dniValor = document.getElementById('paciente_dni').value.trim();
 
             const { data: orden, error } = await db.from('ordenes_patologia').insert([{
                 codigo_orden: correlativo,
                 paciente_nombre: document.getElementById('paciente_nombre').value,
-                paciente_dni: document.getElementById('paciente_dni').value,
+                paciente_dni: dniValor || null,
                 medico_remitente: document.getElementById('medico_remitente').value,
                 tipo_pago: document.getElementById('tipo_pago').value,
                 numero_comprobante: document.getElementById('numero_comprobante').value,
                 monto_cobrado: totalOrden,
                 cantidad_frascos_declarados: cant,
-                usuario_recepcion: document.getElementById('usuario_recepcion').value
+                usuario_recepcion: usuarioRegistro
             }]).select().single();
 
             if (error) return alert('Error al registrar orden: ' + error.message);
 
-            const frascosInsert = descripciones.map((desc, idx) => ({
-                orden_id: orden.id,
-                codigo_frasco: codigosReservados[idx],
-                descripcion_anatomica: desc,
-                estado_pago_frasco: estadosPago[idx],
-                monto_frasco: montosFrasco[idx]
-            }));
+            const frascosInsert = descripciones.map((desc, idx) => {
+                const descFinal = (estadosPago[idx] === 'SEGURO_CONVENIO' && descuentosFrasco[idx] > 0)
+                    ? `${desc} (Desc. S/ ${descuentosFrasco[idx].toFixed(2)})`
+                    : desc;
+
+                return {
+                    orden_id: orden.id,
+                    codigo_frasco: codigosReservados[idx],
+                    descripcion_anatomica: descFinal,
+                    estado_pago_frasco: estadosPago[idx],
+                    monto_frasco: montosNetosFrasco[idx]
+                };
+            });
 
             const { data: frascosCreados, error: errFrascos } = await db.from('frascos_muestra').insert(frascosInsert).select();
             if (errFrascos) return alert('Error al registrar frascos: ' + errFrascos.message);
@@ -1675,7 +1775,7 @@
 
             await marcarFrascoComoRegularizadoEscaneado(
                 `${inc?.nombre_etiqueta_manual || ''} ${inc?.descripcion_muestra || ''}`,
-                document.getElementById('info-usuario')?.innerText || 'Gerencia'
+                obtenerNombreUsuarioActivo()
             );
 
             refrescarAreasActivas();
@@ -1698,7 +1798,7 @@
 
             await marcarFrascoComoRegularizadoEscaneado(
                 `${inc?.nombre_etiqueta_manual || ''} ${inc?.descripcion_muestra || ''}`,
-                document.getElementById('info-usuario')?.innerText || 'Gerencia'
+                obtenerNombreUsuarioActivo()
             );
 
             refrescarAreasActivas();
