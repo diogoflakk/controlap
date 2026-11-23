@@ -109,7 +109,7 @@
 
                                 <div class="min-w-0 flex flex-col">
                                     <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1.5 leading-tight truncate">Cantidad de Frascos *</label>
-                                    <input type="number" id="cantidad_frascos" min="1" max="15" value="1" required onchange="generarInputsFrascos()" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm font-bold">
+                                    <input type="number" id="cantidad_frascos" min="1" max="30" value="1" required onchange="generarInputsFrascos()" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm font-bold">
                                 </div>
 
                                 <div class="min-w-0 flex flex-col">
@@ -122,12 +122,31 @@
                                 </div>
                             </div>
 
+                            <div id="wrap-clave-cortesia-orden" class="hidden bg-amber-50 border border-amber-300 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                <div>
+                                    <label for="clave_cortesia_orden" class="block text-xs font-bold uppercase text-amber-950">🔐 Clave Variable de Cortesía (Aplica a todos los frascos) *</label>
+                                    <span class="text-[11px] text-amber-800">Solicita el código vigente en Gerencia para autorizar la cortesía de la orden.</span>
+                                </div>
+                                <input type="text" id="clave_cortesia_orden" oninput="this.value=this.value.toUpperCase()" class="border border-amber-400 rounded-lg px-3 py-2 text-sm font-mono uppercase w-full sm:w-48" placeholder="Ej: ABC-1234">
+                            </div>
+
                             <div>
                                 <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Médico Remitente</label>
                                 <input type="text" id="medico_remitente" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" placeholder="Dr. Carlos Mendoza">
                             </div>
 
                             <div id="contenedor-frascos" class="space-y-3 bg-slate-50 p-3 sm:p-4 rounded-lg border border-slate-200"></div>
+
+                            <div id="wrap-descuento-seguro-general" class="hidden bg-sky-50 border border-sky-300 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                <div>
+                                    <label for="descuento_seguro_general" class="block text-xs font-bold uppercase text-sky-950">🏷️ Descuento General Seguro / Convenio (%) (Todos los frascos)</label>
+                                    <span id="resumen-descuento-general" class="text-[11px] font-semibold text-sky-800">Subtotal frascos: S/ 0.00 • Descuento: -S/ 0.00</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <input type="number" step="0.01" min="0" max="100" id="descuento_seguro_general" oninput="actualizarTotalOrden()" class="border border-sky-400 rounded-lg px-3 py-2 text-sm font-mono font-bold text-right w-full sm:w-28" placeholder="0">
+                                    <span class="text-sm font-bold text-sky-950">%</span>
+                                </div>
+                            </div>
 
                             <div id="wrap-monto-final-paquete" class="hidden bg-emerald-50/70 border border-emerald-300 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                 <div>
@@ -970,97 +989,90 @@
             return document.getElementById('tipo_pago')?.value === 'SEGURO';
         }
 
+        function esMetodoCortesiaOrden() {
+            return document.getElementById('tipo_pago')?.value === 'CORTESIA_AUTORIZADA';
+        }
+
+        function sincronizarUIOrdenCortesia() {
+            const esCortesia = esMetodoCortesiaOrden();
+            const wrapOrden = document.getElementById('wrap-clave-cortesia-orden');
+            const inputOrden = document.getElementById('clave_cortesia_orden');
+            if (wrapOrden && inputOrden) {
+                wrapOrden.classList.toggle('hidden', !esCortesia);
+                inputOrden.required = esCortesia;
+                if (!esCortesia) {
+                    inputOrden.value = '';
+                }
+            }
+        }
+
+        function sincronizarUISeguroGeneral() {
+            const esSeguro = esMetodoSeguroConvenio();
+            const wrapSeguro = document.getElementById('wrap-descuento-seguro-general');
+            const inputSeguro = document.getElementById('descuento_seguro_general');
+            if (wrapSeguro && inputSeguro) {
+                wrapSeguro.classList.toggle('hidden', !esSeguro);
+                if (!esSeguro) {
+                    inputSeguro.value = '';
+                }
+            }
+        }
+
         function alCambiarTipoPago() {
             const esSeguro = esMetodoSeguroConvenio();
+            const esCortesia = esMetodoCortesiaOrden();
+            sincronizarUIOrdenCortesia();
+            sincronizarUISeguroGeneral();
+
             const selects = Array.from(document.getElementsByName('estado_pago_frasco[]'));
 
-            selects.forEach((select, idx) => {
-                const i = idx + 1;
+            selects.forEach((select) => {
                 const optSeguro = select.querySelector('option[value="SEGURO_CONVENIO"]');
                 if (optSeguro) {
                     optSeguro.hidden = !esSeguro;
                     optSeguro.disabled = !esSeguro;
                 }
 
-                if (esSeguro) {
+                if (esCortesia) {
+                    select.value = 'CORTESIA_AUTORIZADA';
+                } else if (esSeguro) {
                     select.value = 'SEGURO_CONVENIO';
-                } else if (select.value === 'SEGURO_CONVENIO') {
+                } else if (select.value === 'SEGURO_CONVENIO' || select.value === 'CORTESIA_AUTORIZADA') {
                     select.value = 'PAGADO';
                 }
-
-                alternarOpcionesFrasco(i);
             });
 
             actualizarTotalOrden();
-        }
-
-        function alternarOpcionesFrasco(idx) {
-            const select = document.getElementById(`estado_pago_frasco_${idx}`);
-            const wrapClave = document.getElementById(`wrap_clave_cortesia_${idx}`);
-            const inputClave = document.getElementById(`clave_cortesia_${idx}`);
-            const wrapDescuento = document.getElementById(`wrap_descuento_frasco_${idx}`);
-            const inputDescuento = document.getElementById(`descuento_frasco_${idx}`);
-            if (!select) return;
-
-            if (wrapClave && inputClave) {
-                if (select.value === 'CORTESIA_AUTORIZADA') {
-                    wrapClave.classList.remove('hidden');
-                    inputClave.required = true;
-                } else {
-                    wrapClave.classList.add('hidden');
-                    inputClave.required = false;
-                    inputClave.value = '';
-                }
-            }
-
-            if (wrapDescuento && inputDescuento) {
-                if (select.value === 'SEGURO_CONVENIO') {
-                    wrapDescuento.classList.remove('hidden');
-                } else {
-                    wrapDescuento.classList.add('hidden');
-                    inputDescuento.value = '';
-                }
-            }
         }
 
         function generarInputsFrascos() {
             const cant = parseInt(document.getElementById('cantidad_frascos').value) || 1;
             const contenedor = document.getElementById('contenedor-frascos');
             const esSeguro = esMetodoSeguroConvenio();
+            const esCortesia = esMetodoCortesiaOrden();
+            sincronizarUIOrdenCortesia();
+            sincronizarUISeguroGeneral();
             contenedor.innerHTML = `<label class="block text-xs font-bold uppercase text-slate-700">Desglose por frasco (${cant} etiquetas):</label>`;
             
             for (let i = 1; i <= cant; i++) {
+                const estadoInicial = esCortesia ? 'CORTESIA_AUTORIZADA' : (esSeguro ? 'SEGURO_CONVENIO' : 'PAGADO');
                 contenedor.innerHTML += `
-                    <div class="bg-white p-2.5 rounded-lg border border-slate-200 space-y-2">
+                    <div class="bg-white p-2.5 rounded-lg border border-slate-200">
                         <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
                             <div class="md:col-span-5">
                                 <input type="text" name="desc_frasco[]" required class="w-full border border-slate-300 rounded-md p-2 text-sm" placeholder="Frasco ${i}: Muestra">
                             </div>
                             <div class="md:col-span-4">
-                                <select id="estado_pago_frasco_${i}" name="estado_pago_frasco[]" onchange="alternarOpcionesFrasco(${i}); actualizarTotalOrden();" class="w-full border border-slate-300 rounded-md p-2 text-xs font-semibold">
-                                    <option value="PAGADO" ${!esSeguro ? 'selected' : ''}>💰 Pagado Individual</option>
+                                <select id="estado_pago_frasco_${i}" name="estado_pago_frasco[]" onchange="actualizarTotalOrden();" class="w-full border border-slate-300 rounded-md p-2 text-xs font-semibold">
+                                    <option value="PAGADO" ${estadoInicial === 'PAGADO' ? 'selected' : ''}>💰 Pagado Individual</option>
                                     <option value="INCLUIDO_PAQUETE">📦 Incluido en Paquete</option>
-                                    <option value="CORTESIA_AUTORIZADA">🎟️ Cortesía Autorizada</option>
-                                    <option value="SEGURO_CONVENIO" ${esSeguro ? 'selected' : ''} ${!esSeguro ? 'hidden disabled' : ''}>🏥 Seguro / Convenio</option>
+                                    <option value="CORTESIA_AUTORIZADA" ${estadoInicial === 'CORTESIA_AUTORIZADA' ? 'selected' : ''}>🎟️ Cortesía Autorizada</option>
+                                    <option value="SEGURO_CONVENIO" ${estadoInicial === 'SEGURO_CONVENIO' ? 'selected' : ''} ${!esSeguro ? 'hidden disabled' : ''}>🏥 Seguro / Convenio</option>
                                 </select>
                             </div>
                             <div class="md:col-span-3">
                                 <input type="number" step="0.01" min="0" id="monto_frasco_${i}" name="monto_frasco[]" oninput="actualizarTotalOrden()" required class="w-full border border-slate-300 rounded-md p-2 text-sm font-mono text-right" placeholder="S/ 0.00">
                             </div>
-                        </div>
-                        <div id="wrap_descuento_frasco_${i}" class="${esSeguro ? '' : 'hidden'} bg-sky-50 border border-sky-200 rounded-md p-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <div class="flex flex-col">
-                                <label for="descuento_frasco_${i}" class="text-xs font-bold text-sky-900">🏷️ Descuento Seguro / Convenio (%) (Frasco ${i}):</label>
-                                <span id="neto_frasco_${i}" class="text-[11px] font-semibold text-sky-700">Neto frasco: S/ 0.00</span>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <input type="number" step="0.01" min="0" max="100" id="descuento_frasco_${i}" name="descuento_frasco[]" oninput="actualizarTotalOrden()" class="border border-sky-300 rounded-md px-2.5 py-1.5 text-xs font-mono text-right w-full sm:w-28" placeholder="0">
-                                <span class="text-xs font-bold text-sky-900">%</span>
-                            </div>
-                        </div>
-                        <div id="wrap_clave_cortesia_${i}" class="hidden bg-amber-50 border border-amber-300 rounded-md p-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <label for="clave_cortesia_${i}" class="text-xs font-bold text-amber-900">🔐 Clave variable de cortesía (Frasco ${i}):</label>
-                            <input type="text" id="clave_cortesia_${i}" name="clave_cortesia[]" oninput="this.value=this.value.toUpperCase()" class="border border-amber-400 rounded-md px-2.5 py-1.5 text-xs font-mono uppercase w-full sm:w-48" placeholder="Ej: ABC-1234">
                         </div>
                     </div>
                 `;
@@ -1068,10 +1080,15 @@
             actualizarTotalOrden();
         }
 
+        function obtenerPorcentajeSeguroGeneral() {
+            if (!esMetodoSeguroConvenio()) return 0;
+            const raw = parseFloat(document.getElementById('descuento_seguro_general')?.value) || 0;
+            return Math.min(100, Math.max(0, raw));
+        }
+
         function actualizarTotalOrden() {
             const estados = Array.from(document.getElementsByName('estado_pago_frasco[]'));
             const montos = Array.from(document.getElementsByName('monto_frasco[]'));
-            const descuentosPct = Array.from(document.getElementsByName('descuento_frasco[]'));
             const cantFrascos = montos.length;
 
             const hayPaquete = estados.some(s => s.value === 'INCLUIDO_PAQUETE');
@@ -1087,17 +1104,14 @@
                 }
             }
 
-            let total = 0;
+            let subtotal = 0;
 
             montos.forEach((input, idx) => {
                 const estado = estados[idx].value;
-                const i = idx + 1;
 
                 if (esModoPaqueteMultiple) {
                     input.value = '0.00';
                     input.readOnly = true;
-                    const netoEl = document.getElementById(`neto_frasco_${i}`);
-                    if (netoEl) netoEl.innerText = 'Incluido en paquete (cobro al final)';
                     return;
                 }
 
@@ -1106,22 +1120,18 @@
                     input.readOnly = true;
                 } else {
                     input.readOnly = false;
-                    const montoBase = parseFloat(input.value) || 0;
-                    const pctRaw = estado === 'SEGURO_CONVENIO' ? (parseFloat(descuentosPct[idx]?.value) || 0) : 0;
-                    const pct = Math.min(100, Math.max(0, pctRaw));
-                    const descuentoMonto = montoBase * (pct / 100);
-                    const neto = Math.max(0, montoBase - descuentoMonto);
-                    total += neto;
-
-                    const netoEl = document.getElementById(`neto_frasco_${i}`);
-                    if (netoEl) {
-                        netoEl.innerText = pct > 0
-                            ? `Neto frasco: S/ ${neto.toFixed(2)} (${pct}% = -S/ ${descuentoMonto.toFixed(2)})`
-                            : `Neto frasco: S/ ${neto.toFixed(2)}`;
-                    }
+                    subtotal += Math.max(0, parseFloat(input.value) || 0);
                 }
             });
 
+            const pctGeneral = obtenerPorcentajeSeguroGeneral();
+            const montoDescuentoGeneral = esModoPaqueteMultiple ? 0 : subtotal * (pctGeneral / 100);
+            const resumenSeguro = document.getElementById('resumen-descuento-general');
+            if (resumenSeguro) {
+                resumenSeguro.innerText = `Subtotal frascos: S/ ${subtotal.toFixed(2)} • Descuento (${pctGeneral}%): -S/ ${montoDescuentoGeneral.toFixed(2)}`;
+            }
+
+            let total = Math.max(0, subtotal - montoDescuentoGeneral);
             if (esModoPaqueteMultiple && inputMontoFinal) {
                 total = Math.max(0, parseFloat(inputMontoFinal.value) || 0);
             }
@@ -1232,8 +1242,8 @@
             const descripciones = Array.from(document.getElementsByName('desc_frasco[]')).map(i => i.value);
             const estadosPago = Array.from(document.getElementsByName('estado_pago_frasco[]')).map(i => i.value);
             const montosBaseFrasco = Array.from(document.getElementsByName('monto_frasco[]')).map(i => parseFloat(i.value) || 0);
-            const descuentosPctFrasco = Array.from(document.getElementsByName('descuento_frasco[]')).map(i => parseFloat(i.value) || 0);
-            const clavesCortesia = Array.from(document.getElementsByName('clave_cortesia[]')).map(i => normalizarClaveCortesia(i.value));
+            const pctGeneral = obtenerPorcentajeSeguroGeneral();
+            const claveCortesiaOrden = normalizarClaveCortesia(document.getElementById('clave_cortesia_orden')?.value || '');
             const montoFinalPaquete = parseFloat(document.getElementById('monto_final_paquete')?.value) || 0;
 
             const hayPaquete = estadosPago.some(est => est === 'INCLUIDO_PAQUETE');
@@ -1247,7 +1257,11 @@
                 return alert('⚠️ Ingresa el precio / monto final del paquete mayor a S/ 0.00.');
             }
 
-            const requiereCortesia = estadosPago.some(est => est === 'CORTESIA_AUTORIZADA');
+            if (esMetodoSeguroConvenio() && (pctGeneral < 0 || pctGeneral > 100)) {
+                return alert('⚠️ El porcentaje de descuento general debe estar entre 0% y 100%.');
+            }
+
+            const requiereCortesia = esMetodoCortesiaOrden() || estadosPago.some(est => est === 'CORTESIA_AUTORIZADA');
             let claveVigente = null;
 
             if (requiereCortesia) {
@@ -1256,6 +1270,10 @@
                 } catch (errClave) {
                     return alert(`⚠️ No se pudo verificar la clave de cortesía en Supabase: ${errClave.message}`);
                 }
+
+                if (claveCortesiaOrden !== claveVigente) {
+                    return alert(`🔐 Clave de cortesía incorrecta. Ingresaste "${claveCortesiaOrden || '(vacío)'}". Solicita la clave vigente en Gerencia.`);
+                }
             }
 
             const montosNetosFrasco = [];
@@ -1263,22 +1281,17 @@
             for (let i = 0; i < cant; i++) {
                 const est = estadosPago[i];
                 const base = montosBaseFrasco[i];
-                const pct = est === 'SEGURO_CONVENIO' ? descuentosPctFrasco[i] : 0;
 
-                if (est === 'SEGURO_CONVENIO' && (pct < 0 || pct > 100)) {
-                    return alert(`⚠️ Error en Frasco ${i + 1}: El porcentaje de descuento debe estar entre 0% y 100%.`);
-                }
                 if (!esModoPaqueteMultiple && est === 'PAGADO' && base <= 0) {
                     return alert(`⚠️ Error en Frasco ${i + 1}: Está marcado como "Pagado Individual" pero tiene monto S/ 0.00.`);
                 }
-                if (est === 'CORTESIA_AUTORIZADA' && clavesCortesia[i] !== claveVigente) {
-                    return alert(`🔐 Clave de cortesía incorrecta en Frasco ${i + 1}. Ingresaste "${clavesCortesia[i] || '(vacío)'}". Solicita la clave vigente en Gerencia.`);
-                }
 
-                const neto = (esModoPaqueteMultiple || est === 'INCLUIDO_PAQUETE' || est === 'CORTESIA_AUTORIZADA')
-                    ? 0
-                    : Math.max(0, base * (1 - (pct / 100)));
-                montosNetosFrasco.push(neto);
+                if (esModoPaqueteMultiple || est === 'INCLUIDO_PAQUETE' || est === 'CORTESIA_AUTORIZADA') {
+                    montosNetosFrasco.push(0);
+                } else {
+                    const factorDescuento = esMetodoSeguroConvenio() ? (1 - (pctGeneral / 100)) : 1;
+                    montosNetosFrasco.push(Number((base * factorDescuento).toFixed(2)));
+                }
             }
 
             const { data: codigosReservados, error: errCodigos } = await db
@@ -1311,8 +1324,8 @@
             if (error) return alert('Error al registrar orden: ' + error.message);
 
             const frascosInsert = descripciones.map((desc, idx) => {
-                const descFinal = (!esModoPaqueteMultiple && estadosPago[idx] === 'SEGURO_CONVENIO' && descuentosPctFrasco[idx] > 0)
-                    ? `${desc} (Desc. ${descuentosPctFrasco[idx]}%)`
+                const descFinal = (!esModoPaqueteMultiple && esMetodoSeguroConvenio() && pctGeneral > 0)
+                    ? `${desc} (Desc. Gral. ${pctGeneral}%)`
                     : desc;
 
                 return {
