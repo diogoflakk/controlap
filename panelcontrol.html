@@ -56,7 +56,7 @@
                 <div class="flex flex-wrap items-center gap-1 sm:gap-1.5 w-full sm:w-auto">
                     <button onclick="cambiarTab('recepcion')" id="btn-recepcion" class="tab-btn hidden text-white px-2.5 sm:px-3.5 py-1.5 rounded-md font-medium text-[11px] sm:text-xs transition flex-1 sm:flex-initial text-center" style="background-color: #990820;">Recepción | Caja</button>
                     <button onclick="cambiarTab('macroscopia')" id="btn-macroscopia" class="tab-btn hidden text-slate-300 hover:text-white hover:bg-slate-800 px-2.5 sm:px-3.5 py-1.5 rounded-md font-medium text-[11px] sm:text-xs transition flex-1 sm:flex-initial text-center">Macroscopía</button>
-                    <button onclick="cambiarTab('auditoria')" id="btn-auditoria" class="tab-btn hidden text-slate-300 hover:text-white hover:bg-slate-800 px-2.5 sm:px-3.5 py-1.5 rounded-md font-medium text-[11px] sm:text-xs transition flex-1 sm:flex-initial text-center">Cuadre | Auditoría</button>
+                    <button onclick="cambiarTab('auditoria')" id="btn-auditoria" class="tab-btn hidden text-slate-300 hover:text-white hover:bg-slate-800 px-2.5 sm:px-3.5 py-1.5 rounded-md font-medium text-[11px] sm:text-xs transition flex-1 sm:flex-initial text-center">Cuadre | Gerencia</button>
                 </div>
             </div>
 
@@ -389,7 +389,6 @@
         const PERMISOS_POR_ROL = {
             RECEPCION: ['recepcion'],
             MACROSCOPIA: ['macroscopia'],
-            AUDITORIA: ['auditoria', 'macroscopia'],
             GERENCIA: ['auditoria', 'macroscopia']
         };
 
@@ -404,6 +403,10 @@
         let contextoReporteFrasco = null;
         let claveCortesiaActiva = null;
         let claveActualizadaEn = null;
+
+        function esRolGerencia() {
+            return rolActual === 'GERENCIA';
+        }
 
         function obtenerFechaLocalYYYYMMDD(fecha = new Date()) {
             const year = fecha.getFullYear();
@@ -561,7 +564,7 @@
             const btnActualizar = document.getElementById('btn-actualizar-clave-cortesia');
             if (!claveEl || !vigenciaEl) return;
 
-            const puedeVer = rolActual === 'GERENCIA' || rolActual === 'AUDITORIA';
+            const puedeVer = esRolGerencia();
             if (panelEl) {
                 panelEl.classList.toggle('hidden', !puedeVer);
             }
@@ -637,8 +640,7 @@
                 return;
             }
 
-            const puedeGenerar = rolActual === 'GERENCIA' || rolActual === 'AUDITORIA';
-            if (!puedeGenerar) {
+            if (!esRolGerencia()) {
                 await sincronizarClaveCortesiaDesdeDB(false);
                 return;
             }
@@ -784,7 +786,7 @@
                         const cambioReal = normalizada !== claveCortesiaActiva;
                         guardarClaveLocal(normalizada, payload.new?.actualizada_en || new Date().toISOString());
                         renderizarClaveCortesiaUI();
-                        if (cambioReal && (rolActual === 'GERENCIA' || rolActual === 'AUDITORIA')) {
+                        if (cambioReal && esRolGerencia()) {
                             mostrarToast(`🔐 Clave de cortesía sincronizada: ${claveCortesiaActiva}`);
                         }
                     }
@@ -853,8 +855,15 @@
                 return;
             }
 
-            rolActual = perfil.rol;
+            rolActual = String(perfil.rol || '').trim().toUpperCase();
             pestanasPermitidas = PERMISOS_POR_ROL[rolActual] || [];
+
+            if (pestanasPermitidas.length === 0) {
+                alert(`El rol "${rolActual}" no tiene permisos configurados en el panel.`);
+                await db.auth.signOut();
+                window.location.href = 'login.html';
+                return;
+            }
 
             document.getElementById('app-principal').classList.remove('hidden');
             document.getElementById('info-usuario').innerText = perfil.nombre_completo;
@@ -1022,7 +1031,7 @@
                         <p class="font-bold text-sm uppercase truncate">${ord.paciente_nombre || 'PACIENTE'}</p>
                         <p class="text-slate-700 truncate">${f.descripcion_anatomica}</p>
                         <p class="text-[10px] font-bold mt-1 mb-2 text-emerald-700">
-                            ${formatearEtiqueta(f.estado_pago_frasco)} | Comp: ${ord.numero_comprobante || '-'}
+                            ${formatearEtiqueta(f.estado_pago_frasco)} | Comprobante: ${ord.numero_comprobante || '-'}
                         </p>
                         <div class="flex justify-center pt-1 border-t border-slate-200 overflow-x-auto bg-white">
                             <canvas id="barcode-frasco-${i}" class="h-12"></canvas>
@@ -1128,7 +1137,7 @@
                     return alert(`⚠️ Error en Frasco ${i + 1}: Está marcado como "Pagado Individual" pero tiene monto S/ 0.00.`);
                 }
                 if (estadosPago[i] === 'CORTESIA_AUTORIZADA' && clavesCortesia[i] !== claveVigente) {
-                    return alert(`🔐 Clave de cortesía incorrecta en Frasco ${i + 1}. Ingresaste "${clavesCortesia[i] || '(vacío)'}". Solicita la clave vigente en Gerencia/Auditoría.`);
+                    return alert(`🔐 Clave de cortesía incorrecta en Frasco ${i + 1}. Ingresaste "${clavesCortesia[i] || '(vacío)'}". Solicita la clave vigente en Gerencia.`);
                 }
             }
 
