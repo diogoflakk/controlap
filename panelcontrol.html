@@ -152,7 +152,7 @@
                             <div id="wrap-monto-final-paquete" class="hidden bg-emerald-50/70 border border-emerald-300 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                 <div>
                                     <label for="monto_final_paquete" class="block text-xs font-bold uppercase text-emerald-950">📦 Precio / Monto Final del Paquete *</label>
-                                    <span class="text-[11px] text-emerald-800">Los frascos se registran en S/ 0.00 individuales y se cobra el monto final aquí.</span>
+                                    <span id="texto-ayuda-paquete" class="text-[11px] text-emerald-800">Los frascos se registran en S/ 0.00 individuales y se cobra el monto final aquí.</span>
                                 </div>
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-sm font-bold text-emerald-950">S/</span>
@@ -237,7 +237,7 @@
                         <div class="flex flex-col sm:flex-row gap-2 sm:gap-2.5 mb-3">
                             <input type="text" id="operador_macro" class="border border-slate-300 rounded-lg p-2.5 sm:p-3 text-sm w-full sm:w-44" placeholder="Patólogo / Tecnólogo">
                             <div class="flex gap-2 flex-1 min-w-0">
-                                <input type="text" id="input-escaneo" class="flex-1 min-w-0 border-2 border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-lg p-2.5 sm:p-3 text-sm sm:text-base font-mono uppercase" placeholder="Código (Ej: CE-001)">
+                                <input type="text" id="input-escaneo" class="flex-1 min-w-0 border-2 border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-lg p-2.5 sm:p-3 text-sm sm:text-base font-mono uppercase" placeholder="Código (Ej: CE-001-1)">
                                 <button type="button" onclick="toggleCamaraEscaneo()" id="btn-camara" title="Escanear con cámara" class="border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50 font-semibold px-3 sm:px-3.5 py-2.5 sm:py-3 rounded-lg transition flex items-center justify-center shrink-0">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -287,7 +287,7 @@
                         <form id="form-huerfano" class="space-y-3">
                             <div>
                                 <label class="block text-xs font-bold text-red-900 mb-1">Código del frasco *</label>
-                                <input type="text" id="huerfano_nombre" required class="w-full border border-red-300 rounded-lg p-2.5 text-sm font-mono uppercase" placeholder="Ej: CE-001 o SIN-CODIGO">
+                                <input type="text" id="huerfano_nombre" required class="w-full border border-red-300 rounded-lg p-2.5 text-sm font-mono uppercase" placeholder="Ej: CE-001-1 o SIN-CODIGO">
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-red-900 mb-1">¿Qué pasó en el frasco? *</label>
@@ -553,6 +553,42 @@
             return obtenerFechaLocalYYYYMMDD(dt) === fechaYYYYMMDD;
         }
 
+        function formatearCodigosSubfrascos(codigosDevueltos, cantidadEsperada, codigoManual = '') {
+            const lista = Array.isArray(codigosDevueltos) ? codigosDevueltos.map(c => String(c || '').trim().toUpperCase()) : [];
+            if (lista.length === 0) return [];
+
+            const yaTienenSubindice = lista.every(c => /^[A-Z]{2}-\d{3}-\d+$/.test(c));
+            if (yaTienenSubindice && lista.length === cantidadEsperada) {
+                return lista;
+            }
+
+            const matchBase = lista[0].match(/^([A-Z]{2}-\d{3})/);
+            const base = matchBase ? matchBase[1] : (codigoManual || lista[0]);
+            return Array.from({ length: cantidadEsperada }, (_, idx) => `${base}-${idx + 1}`);
+        }
+
+        function ordenarFrascosCronologicamente(lista) {
+            return [...(lista || [])].sort((a, b) => {
+                const codA = String(a?.codigo_frasco || '').toUpperCase();
+                const codB = String(b?.codigo_frasco || '').toUpperCase();
+
+                const matchA = codA.match(/^([A-Z]{2})-(\d+)(?:-(\d+))?$/);
+                const matchB = codB.match(/^([A-Z]{2})-(\d+)(?:-(\d+))?$/);
+
+                if (matchA && matchB) {
+                    const baseNumA = parseInt(matchA[2], 10);
+                    const baseNumB = parseInt(matchB[2], 10);
+                    if (baseNumA !== baseNumB) return baseNumA - baseNumB;
+
+                    const subNumA = matchA[3] ? parseInt(matchA[3], 10) : 0;
+                    const subNumB = matchB[3] ? parseInt(matchB[3], 10) : 0;
+                    if (subNumA !== subNumB) return subNumA - subNumB;
+                }
+
+                return Number(a?.id || 0) - Number(b?.id || 0);
+            });
+        }
+
         async function actualizarIndicadorUltimoFrasco() {
             const badge = document.getElementById('badge-ultimo-fco');
             if (!badge) return;
@@ -564,7 +600,8 @@
                 .single();
 
             if (!error && data?.ultima_clave) {
-                badge.innerText = `Último: ${data.ultima_clave}`;
+                const matchBase = String(data.ultima_clave).toUpperCase().match(/^([A-Z]{2}-\d{3})/);
+                badge.innerText = `Último: ${matchBase ? matchBase[1] : data.ultima_clave}`;
                 return;
             }
 
@@ -575,7 +612,12 @@
                 .limit(1)
                 .single();
 
-            badge.innerText = ultimoFco?.codigo_frasco ? `Último: ${ultimoFco.codigo_frasco}` : 'Último: ---';
+            if (ultimoFco?.codigo_frasco) {
+                const matchBase = String(ultimoFco.codigo_frasco).toUpperCase().match(/^([A-Z]{2}-\d{3})/);
+                badge.innerText = `Último: ${matchBase ? matchBase[1] : ultimoFco.codigo_frasco}`;
+            } else {
+                badge.innerText = 'Último: ---';
+            }
         }
 
         function normalizarClaveCortesia(clave) {
@@ -752,6 +794,8 @@
         function extraerCodigoFrasco(texto) {
             if (!texto) return null;
             const upper = String(texto).toUpperCase();
+            const subFrasco = upper.match(/\b[A-Z]{2}-\d{3}-\d+\b/);
+            if (subFrasco) return subFrasco[0];
             const nuevoFormato = upper.match(/\b[A-Z]{2}-\d{3}\b/);
             if (nuevoFormato) return nuevoFormato[0];
             const anteriorFormato = upper.match(/AP-\d{4}-\d+-F\d+/);
@@ -759,6 +803,8 @@
         }
 
         function obtenerNumeroFrasco(codigoFrasco) {
+            const matchSub = String(codigoFrasco || '').toUpperCase().match(/^[A-Z]{2}-\d{3}-(\d+)$/);
+            if (matchSub) return parseInt(matchSub[1], 10);
             const match = String(codigoFrasco || '').toUpperCase().match(/-(\d+)$/);
             return match ? parseInt(match[1], 10) : null;
         }
@@ -814,7 +860,7 @@
             }
 
             canalRealtime = db
-                .channel('patologia-realtime-sync-v13')
+                .channel('patologia-realtime-sync-v15')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'correlativo_frascos' }, () => {
                     actualizarIndicadorUltimoFrasco();
                 })
@@ -866,17 +912,13 @@
         }
 
         function refrescarAreasActivas() {
-            if (pestanasPermitidas.includes('recepcion')) {
-                actualizarIndicadorUltimoFrasco();
-                cargarRecepcionVivo();
-            }
-            if (pestanasPermitidas.includes('macroscopia')) {
-                cargarPendientesMacro();
-            }
+            actualizarIndicadorUltimoFrasco();
+            cargarRecepcionVivo();
+            cargarPendientesMacro();
+            cargarAuditoria();
+            cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia');
             if (pestanasPermitidas.includes('auditoria')) {
                 sincronizarClaveCortesiaDesdeDB(false);
-                cargarAuditoria();
-                cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia');
             }
         }
 
@@ -1152,6 +1194,9 @@
 
             const wrapPaquete = document.getElementById('wrap-monto-final-paquete');
             const inputMontoFinal = document.getElementById('monto_final_paquete');
+            const textoAyudaPaquete = document.getElementById('texto-ayuda-paquete');
+            const montoPaqueteActual = Math.max(0, parseFloat(inputMontoFinal?.value) || 0);
+
             if (wrapPaquete && inputMontoFinal) {
                 wrapPaquete.classList.toggle('hidden', !esModoPaquete);
                 inputMontoFinal.required = esModoPaquete;
@@ -1160,7 +1205,12 @@
                 }
             }
 
-            const montoPaqueteActual = Math.max(0, parseFloat(inputMontoFinal?.value) || 0);
+            if (textoAyudaPaquete) {
+                textoAyudaPaquete.innerText = montoPaqueteActual > 0
+                    ? `Paquete de S/ ${montoPaqueteActual.toFixed(2)}: se cobra el monto final aquí y los frascos se prorratean en S/ 0.00 individuales.`
+                    : 'Los frascos se registran en S/ 0.00 individuales y se cobra el monto final aquí.';
+            }
+
             let subtotal = 0;
 
             montos.forEach((input, idx) => {
@@ -1204,7 +1254,7 @@
             areaImpresion.innerHTML = frascos.map((f, i) => {
                 const ord = f.ordenes_patologia || ordenBase || {};
                 const matchNum = f.codigo_frasco.match(/-(\d+)$/i);
-                const etiquetaFrasco = matchNum ? `FRASCO ${matchNum[1]}` : `FRASCO ${i + 1}/${total}`;
+                const etiquetaFrasco = matchNum ? `FRASCO ${matchNum[1]}/${total}` : `FRASCO ${i + 1}/${total}`;
 
                 return `
                     <div class="border-2 border-slate-900 p-3 rounded-lg bg-white text-xs font-mono">
@@ -1289,7 +1339,7 @@
                 return;
             }
 
-            renderizarEtiquetas(encontrados);
+            renderizarEtiquetas(ordenarFrascosCronologicamente(encontrados));
         }
 
         document.getElementById('form-recepcion').addEventListener('submit', async (e) => {
@@ -1360,7 +1410,9 @@
                     p_codigo_inicio: codigoFcoManual || null
                 });
 
-            if (errCodigos || !Array.isArray(codigosReservados) || codigosReservados.length !== cant) {
+            const codigosFinales = formatearCodigosSubfrascos(codigosReservados, cant, codigoFcoManual);
+
+            if (errCodigos || codigosFinales.length !== cant) {
                 return alert('Error al generar códigos correlativos de frasco: ' + (errCodigos?.message || 'Respuesta inválida'));
             }
 
@@ -1390,7 +1442,7 @@
 
                 return {
                     orden_id: orden.id,
-                    codigo_frasco: codigosReservados[idx],
+                    codigo_frasco: codigosFinales[idx],
                     descripcion_anatomica: descFinal,
                     estado_pago_frasco: estadosPago[idx],
                     monto_frasco: montosNetosFrasco[idx]
@@ -1400,10 +1452,10 @@
             const { data: frascosCreados, error: errFrascos } = await db.from('frascos_muestra').insert(frascosInsert).select();
             if (errFrascos) return alert('Error al registrar frascos: ' + errFrascos.message);
 
-            renderizarEtiquetas(frascosCreados, orden);
+            renderizarEtiquetas(ordenarFrascosCronologicamente(frascosCreados), orden);
             document.getElementById('form-recepcion').reset();
             generarInputsFrascos();
-            actualizarIndicadorUltimoFrasco();
+            refrescarAreasActivas();
         });
 
         async function cargarRecepcionVivo() {
@@ -1419,7 +1471,9 @@
                 .order('id', { ascending: true })
                 .limit(200);
 
-            const filtrados = (data || []).filter(f => perteneceAFechaSeleccionada(f, fechaSel));
+            const filtrados = ordenarFrascosCronologicamente(
+                (data || []).filter(f => perteneceAFechaSeleccionada(f, fechaSel))
+            );
 
             const tbody = document.getElementById('tabla-recepcion-vivo');
             if (!tbody) return;
@@ -1470,23 +1524,25 @@
                 .order('id', { ascending: true })
                 .limit(200);
 
-            const filtrados = (data || []).filter(f => {
-                if (!perteneceAFechaSeleccionada(f, fechaSel)) return false;
-                if (estado !== 'TODOS' && f.estado !== estado) return false;
-                if (!texto) return true;
+            const filtrados = ordenarFrascosCronologicamente(
+                (data || []).filter(f => {
+                    if (!perteneceAFechaSeleccionada(f, fechaSel)) return false;
+                    if (estado !== 'TODOS' && f.estado !== estado) return false;
+                    if (!texto) return true;
 
-                const ord = f.ordenes_patologia || {};
-                const campos = [
-                    f.codigo_frasco,
-                    ord.paciente_nombre,
-                    f.descripcion_anatomica,
-                    ord.numero_comprobante,
-                    ord.medico_remitente,
-                    ord.usuario_recepcion
-                ].map(v => String(v || '').toLowerCase());
+                    const ord = f.ordenes_patologia || {};
+                    const campos = [
+                        f.codigo_frasco,
+                        ord.paciente_nombre,
+                        f.descripcion_anatomica,
+                        ord.numero_comprobante,
+                        ord.medico_remitente,
+                        ord.usuario_recepcion
+                    ].map(v => String(v || '').toLowerCase());
 
-                return campos.some(c => c.includes(texto));
-            });
+                    return campos.some(c => c.includes(texto));
+                })
+            );
 
             if (filtrados.length === 0) {
                 tbody.innerHTML = `
@@ -1658,6 +1714,7 @@
 
                 feedback.classList.add('bg-emerald-100', 'text-emerald-800');
                 feedback.innerHTML = `✅ <strong>VALIDADO (ESCANEADO - MACROSCOPIA):</strong> ${codigo} | Paciente: <strong>${frasco.ordenes_patologia.paciente_nombre}</strong> | ${frasco.descripcion_anatomica}`;
+                refrescarAreasActivas();
             }
             document.getElementById('input-escaneo').value = '';
         }
