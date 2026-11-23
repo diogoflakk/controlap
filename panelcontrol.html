@@ -258,17 +258,6 @@
 
                             <div id="contenedor-frascos" class="space-y-3 bg-slate-50 p-3 sm:p-4 rounded-lg border border-slate-200"></div>
 
-                            <div id="wrap-descuento-seguro-general" class="hidden bg-sky-50 border border-sky-300 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                                <div>
-                                    <label for="descuento_seguro_general" class="block text-xs font-bold uppercase text-sky-950">🏷️ Descuento General Seguro / Convenio (%) (Todos los frascos)</label>
-                                    <span id="resumen-descuento-general" class="text-[11px] font-semibold text-sky-800">Subtotal frascos: S/ 0.00 • Descuento: -S/ 0.00</span>
-                                </div>
-                                <div class="flex items-center gap-1.5">
-                                    <input type="number" step="0.01" min="0" max="100" id="descuento_seguro_general" oninput="actualizarTotalOrden()" class="border border-sky-400 rounded-lg px-3 py-2 text-sm font-mono font-bold text-right w-full sm:w-28" placeholder="0">
-                                    <span class="text-sm font-bold text-sky-950">%</span>
-                                </div>
-                            </div>
-
                             <div id="wrap-monto-final-paquete" class="hidden bg-emerald-50/70 border border-emerald-300 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                 <div>
                                     <label for="monto_final_paquete" class="block text-xs font-bold uppercase text-emerald-950">📦 Precio / Monto Final del Paquete *</label>
@@ -277,6 +266,17 @@
                                 <div class="flex items-center gap-1.5">
                                     <span class="text-sm font-bold text-emerald-950">S/</span>
                                     <input type="number" step="0.01" min="0" id="monto_final_paquete" oninput="actualizarTotalOrden()" class="border border-emerald-400 rounded-lg px-3 py-2 text-sm font-mono font-bold text-right w-full sm:w-36" placeholder="0.00">
+                                </div>
+                            </div>
+
+                            <div id="wrap-descuento-seguro-general" class="hidden bg-sky-50 border border-sky-300 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                                <div>
+                                    <label for="descuento_seguro_general" class="block text-xs font-bold uppercase text-sky-950">🏷️ Descuento General Seguro / Convenio (%)</label>
+                                    <span id="resumen-descuento-general" class="text-[11px] font-semibold text-sky-800">Monto paquete: S/ 0.00 • Descuento: -S/ 0.00</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <input type="number" step="0.01" min="0" max="100" id="descuento_seguro_general" oninput="actualizarTotalOrden()" class="border border-sky-400 rounded-lg px-3 py-2 text-sm font-mono font-bold text-right w-full sm:w-28" placeholder="0">
+                                    <span class="text-sm font-bold text-sky-950">%</span>
                                 </div>
                             </div>
 
@@ -1037,6 +1037,7 @@
 
         function formatearEtiqueta(valor) {
             if (!valor) return '';
+            if (valor === 'EN_RECEPCION') return 'EN  RECEPCION';
             return String(valor).replace(/_/g, ' - ');
         }
 
@@ -1115,7 +1116,7 @@
             }
 
             canalRealtime = db
-                .channel('patologia-realtime-sync-v16')
+                .channel('patologia-realtime-sync-v17')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'correlativo_frascos' }, () => {
                     actualizarIndicadorUltimoFrasco();
                 })
@@ -1442,10 +1443,10 @@
         function actualizarTotalOrden() {
             const estados = Array.from(document.getElementsByName('estado_pago_frasco[]'));
             const montos = Array.from(document.getElementsByName('monto_frasco[]'));
+            const esSeguro = esMetodoSeguroConvenio();
 
             const esModoPaquete = !esMetodoCortesiaOrden()
-                && !esMetodoSeguroConvenio()
-                && estados.some(s => s.value === 'INCLUIDO_PAQUETE');
+                && (esSeguro || estados.some(s => s.value === 'INCLUIDO_PAQUETE'));
 
             const wrapPaquete = document.getElementById('wrap-monto-final-paquete');
             const inputMontoFinal = document.getElementById('monto_final_paquete');
@@ -1461,9 +1462,11 @@
             }
 
             if (textoAyudaPaquete) {
-                textoAyudaPaquete.innerText = montoPaqueteActual > 0
-                    ? `Paquete de S/ ${montoPaqueteActual.toFixed(2)}: se cobra el monto final aquí y los frascos se prorratean en S/ 0.00 individuales.`
-                    : 'Los frascos se registran en S/ 0.00 individuales y se cobra el monto final aquí.';
+                textoAyudaPaquete.innerText = esSeguro
+                    ? 'Todos los frascos quedan en S/ 0.00; ingresa el monto total del paquete y luego el descuento.'
+                    : (montoPaqueteActual > 0
+                        ? `Paquete de S/ ${montoPaqueteActual.toFixed(2)}: se cobra el monto final aquí y los frascos se registran en S/ 0.00 individuales.`
+                        : 'Los frascos se registran en S/ 0.00 individuales y se cobra el monto final aquí.');
             }
 
             let subtotal = 0;
@@ -1472,7 +1475,7 @@
                 const estado = estados[idx].value;
 
                 if (esModoPaquete) {
-                    input.value = montoPaqueteActual.toFixed(2);
+                    input.value = '0.00';
                     input.readOnly = true;
                     return;
                 }
@@ -1486,17 +1489,15 @@
                 }
             });
 
+            const baseCalculo = esModoPaquete ? montoPaqueteActual : subtotal;
             const pctGeneral = obtenerPorcentajeSeguroGeneral();
-            const montoDescuentoGeneral = esModoPaquete ? 0 : subtotal * (pctGeneral / 100);
+            const montoDescuentoGeneral = baseCalculo * (pctGeneral / 100);
             const resumenSeguro = document.getElementById('resumen-descuento-general');
             if (resumenSeguro) {
-                resumenSeguro.innerText = `Subtotal frascos: S/ ${subtotal.toFixed(2)} • Descuento (${pctGeneral}%): -S/ ${montoDescuentoGeneral.toFixed(2)}`;
+                resumenSeguro.innerText = `Monto paquete: S/ ${baseCalculo.toFixed(2)} • Descuento (${pctGeneral}%): -S/ ${montoDescuentoGeneral.toFixed(2)}`;
             }
 
-            let total = Math.max(0, subtotal - montoDescuentoGeneral);
-            if (esModoPaquete) {
-                total = montoPaqueteActual;
-            }
+            const total = Math.max(0, baseCalculo - montoDescuentoGeneral);
 
             document.getElementById('total-orden-preview').innerText = `S/ ${total.toFixed(2)}`;
             return total;
@@ -1607,10 +1608,10 @@
             const pctGeneral = obtenerPorcentajeSeguroGeneral();
             const claveCortesiaOrden = normalizarClaveCortesia(document.getElementById('clave_cortesia_orden')?.value || '');
             const montoFinalPaquete = parseFloat(document.getElementById('monto_final_paquete')?.value) || 0;
+            const esSeguro = esMetodoSeguroConvenio();
 
             const esModoPaquete = !esMetodoCortesiaOrden()
-                && !esMetodoSeguroConvenio()
-                && estadosPago.some(est => est === 'INCLUIDO_PAQUETE');
+                && (esSeguro || estadosPago.some(est => est === 'INCLUIDO_PAQUETE'));
 
             if (codigoFcoManual && !/^[A-Z]{2}-\d{3}$/.test(codigoFcoManual)) {
                 return alert('⚠️ El código manual de frasco debe tener formato AA-000 (por ejemplo: CE-203).');
@@ -1620,7 +1621,7 @@
                 return alert('⚠️ Ingresa el precio / monto final del paquete mayor a S/ 0.00.');
             }
 
-            if (esMetodoSeguroConvenio() && (pctGeneral < 0 || pctGeneral > 100)) {
+            if (esSeguro && (pctGeneral < 0 || pctGeneral > 100)) {
                 return alert('⚠️ El porcentaje de descuento general debe estar entre 0% y 100%.');
             }
 
@@ -1650,12 +1651,11 @@
                 }
 
                 if (esModoPaquete) {
-                    montosNetosFrasco.push(Number(montoFinalPaquete.toFixed(2)));
+                    montosNetosFrasco.push(0);
                 } else if (est === 'CORTESIA_AUTORIZADA') {
                     montosNetosFrasco.push(0);
                 } else {
-                    const factorDescuento = esMetodoSeguroConvenio() ? (1 - (pctGeneral / 100)) : 1;
-                    montosNetosFrasco.push(Number((base * factorDescuento).toFixed(2)));
+                    montosNetosFrasco.push(Number(base.toFixed(2)));
                 }
             }
 
@@ -1691,7 +1691,7 @@
             if (error) return alert('Error al registrar orden: ' + error.message);
 
             const frascosInsert = descripciones.map((desc, idx) => {
-                const descFinal = (!esModoPaquete && esMetodoSeguroConvenio() && pctGeneral > 0)
+                const descFinal = (esSeguro && pctGeneral > 0)
                     ? `${desc} (Desc. Gral. ${pctGeneral}%)`
                     : desc;
 
