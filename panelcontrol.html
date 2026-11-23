@@ -1293,7 +1293,7 @@
             }
 
             canalRealtime = db
-                .channel('patologia-realtime-sync-v24')
+                .channel('patologia-realtime-sync-v25')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'correlativo_frascos' }, () => {
                     actualizarIndicadorUltimoFrasco();
                 })
