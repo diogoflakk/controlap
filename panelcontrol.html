@@ -584,6 +584,9 @@
         let nombreUsuarioActual = null;
         let pestanasPermitidas = [];
         let canalRealtime = null;
+        let intervaloRespaldoSync = null;
+        let refrescandoEnCurso = false;
+        let refrescoPendiente = false;
         let toastTimeout = null;
         let html5QrCode = null;
         let camaraActiva = false;
@@ -732,15 +735,41 @@
 
         async function abrirDetalleFrasco(claveCache, mantenerAbierto = false) {
             let grupo = cacheOrdenesDetalle.get(String(claveCache));
+
             if (!grupo && claveCache) {
+                const targetStr = String(claveCache);
+                const ordenBaseTarget = targetStr.replace(/^(macro|gerencia)-(orden-|ce-)/, '');
                 const match = Array.from(cacheOrdenesDetalle.entries()).find(([k, v]) =>
-                    k === String(claveCache) || k.endsWith(`-${claveCache}`) || v?.ordenBase === claveCache
+                    k === targetStr ||
+                    k.endsWith(`-${targetStr}`) ||
+                    k.endsWith(`-${ordenBaseTarget}`) ||
+                    v?.ordenBase === ordenBaseTarget
                 );
                 if (match) {
                     claveCache = match[0];
                     grupo = match[1];
                 }
             }
+
+            if (!grupo && claveCache) {
+                const ordenBaseConsulta = String(claveCache).replace(/^(macro|gerencia)-(orden-|ce-)/, '');
+                if (/^[A-Z]{2}-\d{3}$/i.test(ordenBaseConsulta)) {
+                    const { data: frascosDirectos } = await db
+                        .from('frascos_muestra')
+                        .select('*, ordenes_patologia(codigo_orden, paciente_nombre, paciente_dni, tipo_pago, monto_cobrado, cantidad_frascos_declarados, numero_comprobante, medico_remitente, usuario_recepcion)')
+                        .ilike('codigo_frasco', `${ordenBaseConsulta}%`)
+                        .order('id', { ascending: true });
+
+                    if (frascosDirectos && frascosDirectos.length > 0) {
+                        const agrupadas = agruparFrascosPorOrden(frascosDirectos);
+                        if (agrupadas.length > 0) {
+                            grupo = agrupadas[0];
+                            cacheOrdenesDetalle.set(String(claveCache), grupo);
+                        }
+                    }
+                }
+            }
+
             if (!grupo) return;
 
             claveDrawerAbierta = String(claveCache);
@@ -849,7 +878,9 @@
                 }
             }
 
-            if (!mantenerAbierto || !drawer.classList.contains('hidden')) {
+            if (!mantenerAbierto) {
+                drawer.classList.remove('hidden');
+            } else if (!drawer.classList.contains('hidden')) {
                 drawer.classList.remove('hidden');
             }
         }
@@ -938,7 +969,6 @@
             return obtenerFechaLocalYYYYMMDD(dt) === fechaYYYYMMDD;
         }
 
-        // Si cantidad === 1: devuelve ["CE-XXX"] (sin -1). Si cantidad > 1: devuelve ["CE-XXX-1", "CE-XXX-2", ...].
         function formatearCodigosSubfrascos(codigosDevueltos, cantidadEsperada, codigoManual = '') {
             const lista = Array.isArray(codigosDevueltos) ? codigosDevueltos.map(c => String(c || '').trim().toUpperCase()) : [];
             if (lista.length === 0) return [];
@@ -1258,8 +1288,12 @@
                 db.removeChannel(canalRealtime);
             }
 
+            if (intervaloRespaldoSync) {
+                clearInterval(intervaloRespaldoSync);
+            }
+
             canalRealtime = db
-                .channel('patologia-realtime-sync-v22')
+                .channel('patologia-realtime-sync-v24')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'correlativo_frascos' }, () => {
                     actualizarIndicadorUltimoFrasco();
                 })
@@ -1277,23 +1311,23 @@
                 })
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'ordenes_patologia' }, (payload) => {
                     if (payload.eventType === 'INSERT') {
-                        mostrarToast(`📥 Nueva orden registrada: ${payload.new.codigo_orden || ''}`);
+                        mostrarToast(`📥 Nueva orden registrada: ${payload.new?.codigo_orden || ''}`);
                     }
                     refrescarAreasActivas();
                 })
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'frascos_muestra' }, (payload) => {
-                    if (payload.eventType === 'UPDATE' && payload.new.estado === 'ESCANEADO_MACROSCOPIA') {
-                        mostrarToast(`✅ Frasco validado / regularizado: ${payload.new.codigo_frasco} (${formatearEtiqueta(payload.new.estado)})`);
-                    } else if (payload.eventType === 'UPDATE' && payload.new.estado === 'PENDIENTE_REGULARIZAR') {
+                    if (payload.eventType === 'UPDATE' && payload.new?.estado === 'ESCANEADO_MACROSCOPIA') {
+                        mostrarToast(`✅ Frasco validado / regularizado: ${payload.new.codigo_frasco}`);
+                    } else if (payload.eventType === 'UPDATE' && payload.new?.estado === 'PENDIENTE_REGULARIZAR') {
                         mostrarToast(`⚠️ Frasco bloqueado / regularizar: ${payload.new.codigo_frasco}`);
                     }
                     refrescarAreasActivas();
                 })
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'incidencias_huerfanos' }, (payload) => {
                     if (payload.eventType === 'INSERT') {
-                        mostrarToast(`🚨 Incidencia reportada: ${payload.new.nombre_etiqueta_manual}`);
+                        mostrarToast(`🚨 Incidencia reportada: ${payload.new?.nombre_etiqueta_manual || ''}`);
                     } else if (payload.eventType === 'UPDATE') {
-                        mostrarToast(`⚖️ Incidencia actualizada: ${formatearEtiqueta(payload.new.estado_auditoria)}`);
+                        mostrarToast(`⚖️ Incidencia actualizada: ${formatearEtiqueta(payload.new?.estado_auditoria || '')}`);
                     }
                     refrescarAreasActivas();
                 })
@@ -1303,28 +1337,63 @@
                     if (status === 'SUBSCRIBED') {
                         badge.className = 'flex items-center gap-1 text-[10px] sm:text-[11px] font-mono bg-emerald-950 border border-emerald-600 px-2 py-0.5 rounded-full text-emerald-300';
                         badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span>EN VIVO`;
-                    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
                         badge.className = 'flex items-center gap-1 text-[10px] sm:text-[11px] font-mono bg-red-950 border border-red-600 px-2 py-0.5 rounded-full text-red-300';
-                        badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-400"></span>SIN REALTIME`;
+                        badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-400"></span>RECONECTANDO...`;
+                        setTimeout(() => {
+                            if (!document.hidden) iniciarRealtime();
+                        }, 3000);
                     }
                 });
+
+            intervaloRespaldoSync = setInterval(() => {
+                if (!document.hidden && rolActual) {
+                    refrescarAreasActivas();
+                }
+            }, 3000);
         }
 
-        async function refrescarAreasActivas() {
-            await Promise.all([
-                actualizarIndicadorUltimoFrasco(),
-                cargarRecepcionVivo(),
-                cargarFrascosDetallados('tabla-pendientes-macro', 'macro'),
-                cargarAuditoria(),
-                cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia')
-            ]);
-
-            if (claveDrawerAbierta) {
-                await abrirDetalleFrasco(claveDrawerAbierta, true);
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && rolActual) {
+                refrescarAreasActivas();
             }
+        });
 
-            if (pestanasPermitidas.includes('auditoria')) {
-                sincronizarClaveCortesiaDesdeDB(false);
+        window.addEventListener('focus', () => {
+            if (rolActual) {
+                refrescarAreasActivas();
+            }
+        });
+
+        async function refrescarAreasActivas() {
+            if (refrescandoEnCurso) {
+                refrescoPendiente = true;
+                return;
+            }
+            refrescandoEnCurso = true;
+
+            try {
+                await Promise.all([
+                    actualizarIndicadorUltimoFrasco(),
+                    cargarRecepcionVivo(),
+                    cargarFrascosDetallados('tabla-pendientes-macro', 'macro'),
+                    cargarAuditoria(),
+                    cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia')
+                ]);
+
+                if (claveDrawerAbierta) {
+                    await abrirDetalleFrasco(claveDrawerAbierta, true);
+                }
+
+                if (pestanasPermitidas.includes('auditoria')) {
+                    await sincronizarClaveCortesiaDesdeDB(false);
+                }
+            } finally {
+                refrescandoEnCurso = false;
+                if (refrescoPendiente) {
+                    refrescoPendiente = false;
+                    await refrescarAreasActivas();
+                }
             }
         }
 
@@ -1382,6 +1451,10 @@
 
         async function cerrarSesion() {
             await cerrarCamaraEscaneo();
+            if (intervaloRespaldoSync) {
+                clearInterval(intervaloRespaldoSync);
+                intervaloRespaldoSync = null;
+            }
             if (canalRealtime) {
                 await db.removeChannel(canalRealtime);
                 canalRealtime = null;
