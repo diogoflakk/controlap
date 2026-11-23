@@ -32,6 +32,126 @@
     <div id="toast-evento" class="hidden fixed bottom-4 right-4 left-4 sm:left-auto z-50 max-w-sm bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl text-xs font-medium" style="border: 1px solid rgba(153, 8, 32, 0.55);"></div>
 
 
+    <!-- VENTANA LATERAL DE DETALLE DE FRASCO (GERENCIA) -->
+    <div id="drawer-detalle-frasco" class="hidden fixed inset-0 z-50 flex justify-end bg-slate-950/50 backdrop-blur-[1px]" onclick="if(event.target===this) cerrarDetalleFrasco()">
+        <aside class="relative w-full max-w-lg bg-white h-full shadow-2xl border-l border-slate-200 flex flex-col justify-between overflow-hidden">
+            <div class="overflow-y-auto p-4 sm:p-6 space-y-5">
+                <div class="flex items-start justify-between gap-3 border-b border-slate-200 pb-4">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Expediente de Auditoría • Gerencia</span>
+                        <div class="flex items-center gap-2.5 mt-1 flex-wrap">
+                            <h3 id="drawer-codigo-frasco" class="text-xl font-mono font-black text-slate-900">---</h3>
+                            <span id="drawer-estado-badge" class="px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-100 text-amber-800">---</span>
+                        </div>
+                        <p id="drawer-subtitulo-orden" class="text-xs text-slate-500 mt-1">Orden: ---</p>
+                    </div>
+                    <button type="button" onclick="cerrarDetalleFrasco()" aria-label="Cerrar ventana lateral" class="text-slate-500 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg p-2 transition shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- BLOQUE ECONÓMICO -->
+                <div class="bg-emerald-50/70 border border-emerald-200 rounded-xl p-4 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold uppercase text-emerald-950">💰 Información Económica y Descuento</span>
+                        <span id="drawer-estado-pago" class="text-[11px] font-bold px-2 py-0.5 rounded bg-white border border-emerald-300 text-emerald-800">---</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 pt-1">
+                        <div class="bg-white border border-emerald-200 rounded-lg p-2.5">
+                            <span class="block text-[10px] font-bold uppercase text-slate-400">Precio Real (Sin Desc.)</span>
+                            <span id="drawer-precio-real" class="text-sm font-mono font-bold text-slate-800">S/ 0.00</span>
+                        </div>
+                        <div class="bg-white border border-emerald-200 rounded-lg p-2.5">
+                            <span class="block text-[10px] font-bold uppercase text-slate-400">Precio con Descuento / Neto</span>
+                            <span id="drawer-precio-descuento" class="text-sm font-mono font-black text-emerald-700">S/ 0.00</span>
+                        </div>
+                        <div class="bg-white border border-emerald-200 rounded-lg p-2.5">
+                            <span class="block text-[10px] font-bold uppercase text-slate-400">Descuento Aplicado</span>
+                            <span id="drawer-descuento-detalle" class="text-xs font-mono font-bold text-sky-700">0% (S/ 0.00)</span>
+                        </div>
+                        <div class="bg-white border border-emerald-200 rounded-lg p-2.5">
+                            <span class="block text-[10px] font-bold uppercase text-slate-400">Total Boleta / Orden</span>
+                            <span id="drawer-total-orden" class="text-sm font-mono font-black text-slate-900">S/ 0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DATOS DEL PACIENTE Y MUESTRA -->
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2.5">
+                    <div class="text-xs font-bold uppercase text-slate-700">🩺 Paciente, Muestra y Comprobante</div>
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2.5 text-xs">
+                        <div>
+                            <dt class="text-[10px] font-bold uppercase text-slate-400">Nombre del Paciente</dt>
+                            <dd id="drawer-paciente-nombre" class="font-semibold text-slate-900 mt-0.5">-</dd>
+                        </div>
+                        <div>
+                            <dt class="text-[10px] font-bold uppercase text-slate-400">DNI / Documento</dt>
+                            <dd id="drawer-paciente-dni" class="font-mono font-semibold text-slate-800 mt-0.5">-</dd>
+                        </div>
+                        <div>
+                            <dt class="text-[10px] font-bold uppercase text-slate-400">Método de Pago</dt>
+                            <dd id="drawer-metodo-pago" class="font-semibold text-slate-800 mt-0.5">-</dd>
+                        </div>
+                        <div>
+                            <dt class="text-[10px] font-bold uppercase text-slate-400">N° Boleta / Comprobante</dt>
+                            <dd id="drawer-comprobante" class="font-mono font-bold text-slate-900 mt-0.5">-</dd>
+                        </div>
+                        <div>
+                            <dt class="text-[10px] font-bold uppercase text-slate-400">Cantidad de Frascos (Orden)</dt>
+                            <dd id="drawer-cantidad-frascos" class="font-bold text-slate-800 mt-0.5">-</dd>
+                        </div>
+                        <div>
+                            <dt class="text-[10px] font-bold uppercase text-slate-400">Médico Remitente</dt>
+                            <dd id="drawer-medico-remitente" class="font-semibold text-slate-800 mt-0.5">-</dd>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <dt class="text-[10px] font-bold uppercase text-slate-400">Muestra / Descripción Anatómica</dt>
+                            <dd id="drawer-muestra" class="font-semibold text-slate-900 mt-0.5">-</dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <!-- TRAZABILIDAD DE REGISTRO Y ESCANEO -->
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2.5">
+                    <div class="text-xs font-bold uppercase text-slate-700">📋 Trazabilidad: Recepción y Macroscopía</div>
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2.5 text-xs">
+                        <div>
+                            <dt class="text-[10px] font-bold uppercase text-slate-400">Registrado Por (Recepción)</dt>
+                            <dd id="drawer-registrado-por" class="font-semibold text-slate-900 mt-0.5">-</dd>
+                        </div>
+                        <div>
+                            <dt class="text-[10px] font-bold uppercase text-slate-400">Fecha / Hora Registro</dt>
+                            <dd id="drawer-fecha-registro" class="font-mono text-slate-700 mt-0.5">-</dd>
+                        </div>
+                        <div>
+                            <dt class="text-[10px] font-bold uppercase text-slate-400">Escaneado / Validado Por</dt>
+                            <dd id="drawer-escaneado-por" class="font-semibold text-slate-900 mt-0.5">-</dd>
+                        </div>
+                        <div>
+                            <dt class="text-[10px] font-bold uppercase text-slate-400">Fecha / Hora Escaneo Macro</dt>
+                            <dd id="drawer-fecha-escaneo" class="font-mono text-slate-700 mt-0.5">-</dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <!-- INCIDENCIAS RELACIONADAS -->
+                <div id="drawer-bloque-incidencias" class="hidden bg-red-50 border border-red-200 rounded-xl p-4 space-y-2">
+                    <div class="text-xs font-bold uppercase text-red-800">🚨 Incidencias Vinculadas a Este Frasco</div>
+                    <div id="drawer-lista-incidencias" class="space-y-2 text-xs"></div>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-200 bg-slate-50 px-4 sm:px-6 py-3 flex justify-end">
+                <button type="button" onclick="cerrarDetalleFrasco()" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold px-4 py-2 rounded-lg transition">
+                    Cerrar ventana
+                </button>
+            </div>
+        </aside>
+    </div>
+
+
     <div id="app-principal" class="hidden">
         <nav class="bg-slate-900 text-white px-3 sm:px-6 py-3 shadow-sm border-b border-slate-800 flex flex-wrap justify-between items-center gap-2.5 sm:gap-4">
             <div class="flex flex-wrap items-center gap-2.5 sm:gap-6 w-full sm:w-auto justify-between sm:justify-start">
@@ -391,7 +511,7 @@
                         </div>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[680px]">
+                        <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[740px]">
                             <thead>
                                 <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
                                     <th class="p-2 sm:p-2.5">Código Frasco</th>
@@ -401,6 +521,7 @@
                                     <th class="p-2 sm:p-2.5">Médico Remitente</th>
                                     <th class="p-2 sm:p-2.5">Registrado Por</th>
                                     <th class="p-2 sm:p-2.5">Estado Macroscopía</th>
+                                    <th class="p-2 sm:p-2.5 text-center">Detalle</th>
                                 </tr>
                             </thead>
                             <tbody id="tabla-frascos-gerencia-detalle" class="divide-y divide-slate-100"></tbody>
@@ -434,6 +555,7 @@
         let contextoReporteFrasco = null;
         let claveCortesiaActiva = null;
         let claveActualizadaEn = null;
+        let cacheFrascosDetalleGerencia = new Map();
 
         function esRolGerencia() {
             return rolActual === 'GERENCIA';
@@ -478,6 +600,139 @@
             if (Number.isNaN(dt.getTime())) return `del ${fechaYYYYMMDD}`;
             return `del ${dt.toLocaleDateString()}`;
         }
+
+        function formatearFechaHoraLegible(valor) {
+            if (!valor) return '-';
+            const dt = new Date(valor);
+            if (Number.isNaN(dt.getTime())) return String(valor);
+            return dt.toLocaleString();
+        }
+
+        function formatearSoles(monto) {
+            const num = Number(monto || 0);
+            return `S/ ${Number.isNaN(num) ? '0.00' : num.toFixed(2)}`;
+        }
+
+        function extraerPorcentajeDescuentoMuestra(descripcion) {
+            const texto = String(descripcion || '');
+            const match = texto.match(/Desc\.\s*Gral\.\s*(\d+(?:\.\d+)?)\s*%/i);
+            if (!match) return 0;
+            const pct = parseFloat(match[1]);
+            return Number.isNaN(pct) ? 0 : Math.min(100, Math.max(0, pct));
+        }
+
+        function calcularDatosEconomicosFrasco(frasco) {
+            const ord = frasco?.ordenes_patologia || {};
+            const montoNetoFrasco = Number(frasco?.monto_frasco || 0);
+            const pctDesc = extraerPorcentajeDescuentoMuestra(frasco?.descripcion_anatomica);
+            const estadoPago = frasco?.estado_pago_frasco || ord?.tipo_pago || '-';
+
+            let precioReal = montoNetoFrasco;
+            let montoDescuento = 0;
+
+            if (estadoPago === 'INCLUIDO_PAQUETE') {
+                precioReal = Number(ord?.monto_cobrado || montoNetoFrasco || 0);
+                montoDescuento = 0;
+            } else if (estadoPago === 'CORTESIA_AUTORIZADA') {
+                precioReal = 0;
+                montoDescuento = 0;
+            } else if (pctDesc > 0 && pctDesc < 100) {
+                precioReal = montoNetoFrasco / (1 - (pctDesc / 100));
+                montoDescuento = Math.max(0, precioReal - montoNetoFrasco);
+            }
+
+            return {
+                estadoPago,
+                precioReal,
+                precioConDescuento: montoNetoFrasco,
+                pctDesc,
+                montoDescuento,
+                totalOrden: Number(ord?.monto_cobrado || 0)
+            };
+        }
+
+        async function abrirDetalleFrasco(claveCache) {
+            const frasco = cacheFrascosDetalleGerencia.get(String(claveCache));
+            if (!frasco) return;
+
+            const ord = frasco.ordenes_patologia || {};
+            const eco = calcularDatosEconomicosFrasco(frasco);
+            const drawer = document.getElementById('drawer-detalle-frasco');
+
+            document.getElementById('drawer-codigo-frasco').innerText = frasco.codigo_frasco || '-';
+            document.getElementById('drawer-subtitulo-orden').innerText = `Orden: ${ord.codigo_orden || 'Sin código de orden'}`;
+
+            const badge = document.getElementById('drawer-estado-badge');
+            badge.className = `px-2.5 py-1 rounded-md text-[11px] font-bold ${obtenerClaseEstadoFrasco(frasco.estado)}`;
+            badge.innerText = formatearEtiqueta(frasco.estado);
+
+            document.getElementById('drawer-estado-pago').innerText = formatearEtiqueta(eco.estadoPago);
+            document.getElementById('drawer-precio-real').innerText = formatearSoles(eco.precioReal);
+            document.getElementById('drawer-precio-descuento').innerText = formatearSoles(eco.precioConDescuento);
+            document.getElementById('drawer-descuento-detalle').innerText = eco.pctDesc > 0
+                ? `${eco.pctDesc}% (-${formatearSoles(eco.montoDescuento)})`
+                : `0% (${formatearSoles(0)})`;
+            document.getElementById('drawer-total-orden').innerText = formatearSoles(eco.totalOrden);
+
+            document.getElementById('drawer-paciente-nombre').innerText = ord.paciente_nombre || '-';
+            document.getElementById('drawer-paciente-dni').innerText = ord.paciente_dni || 'No registrado';
+            document.getElementById('drawer-metodo-pago').innerText = formatearEtiqueta(ord.tipo_pago || '-');
+            document.getElementById('drawer-comprobante').innerText = ord.numero_comprobante || '-';
+            document.getElementById('drawer-cantidad-frascos').innerText = ord.cantidad_frascos_declarados ? `${ord.cantidad_frascos_declarados} frasco(s)` : '-';
+            document.getElementById('drawer-medico-remitente').innerText = ord.medico_remitente || '-';
+            document.getElementById('drawer-muestra').innerText = frasco.descripcion_anatomica || '-';
+
+            document.getElementById('drawer-registrado-por').innerText = formatearRegistradoPor(ord.usuario_recepcion);
+            document.getElementById('drawer-fecha-registro').innerText = formatearFechaHoraLegible(
+                frasco.fecha_creacion || frasco.created_at || ord.fecha_creacion || ord.created_at
+            );
+            document.getElementById('drawer-escaneado-por').innerText = frasco.escaneado_por
+                ? formatearRegistradoPor(frasco.escaneado_por)
+                : 'Aún no escaneado';
+            document.getElementById('drawer-fecha-escaneo').innerText = formatearFechaHoraLegible(frasco.fecha_escaneo_macro);
+
+            const bloqueInc = document.getElementById('drawer-bloque-incidencias');
+            const listaInc = document.getElementById('drawer-lista-incidencias');
+            bloqueInc.classList.add('hidden');
+            listaInc.innerHTML = '';
+
+            if (frasco.codigo_frasco) {
+                const { data: incidencias } = await db
+                    .from('incidencias_huerfanos')
+                    .select('*')
+                    .ilike('nombre_etiqueta_manual', `%${frasco.codigo_frasco}%`)
+                    .order('fecha_deteccion', { ascending: false });
+
+                if (incidencias && incidencias.length > 0) {
+                    bloqueInc.classList.remove('hidden');
+                    listaInc.innerHTML = incidencias.map(inc => `
+                        <div class="bg-white border border-red-200 rounded-lg p-2.5">
+                            <div class="flex justify-between items-center gap-2 font-bold text-red-800">
+                                <span>${formatearEtiqueta(inc.estado_auditoria)}</span>
+                                <span class="text-[10px] font-mono text-slate-500">${formatearFechaHoraLegible(inc.fecha_deteccion)}</span>
+                            </div>
+                            <p class="text-slate-800 mt-1">${inc.descripcion_muestra || '-'}</p>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Origen: ${inc.quien_entrego || 'No especificado'} • Detectó: ${inc.detectado_por || '-'}</p>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            drawer.classList.remove('hidden');
+        }
+
+        function cerrarDetalleFrasco() {
+            const drawer = document.getElementById('drawer-detalle-frasco');
+            if (drawer) {
+                drawer.classList.add('hidden');
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                cerrarDetalleFrasco();
+            }
+        });
 
         function inicializarFiltrosFechaEstadoVivo() {
             const hoy = obtenerFechaLocalYYYYMMDD();
@@ -860,7 +1115,7 @@
             }
 
             canalRealtime = db
-                .channel('patologia-realtime-sync-v15')
+                .channel('patologia-realtime-sync-v16')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'correlativo_frascos' }, () => {
                     actualizarIndicadorUltimoFrasco();
                 })
@@ -1520,7 +1775,7 @@
 
             const { data } = await db
                 .from('frascos_muestra')
-                .select('*, ordenes_patologia(paciente_nombre, numero_comprobante, medico_remitente, usuario_recepcion)')
+                .select('*, ordenes_patologia(codigo_orden, paciente_nombre, paciente_dni, tipo_pago, monto_cobrado, cantidad_frascos_declarados, numero_comprobante, medico_remitente, usuario_recepcion, fecha_creacion, created_at)')
                 .order('id', { ascending: true })
                 .limit(200);
 
@@ -1534,10 +1789,12 @@
                     const campos = [
                         f.codigo_frasco,
                         ord.paciente_nombre,
+                        ord.paciente_dni,
                         f.descripcion_anatomica,
                         ord.numero_comprobante,
                         ord.medico_remitente,
-                        ord.usuario_recepcion
+                        ord.usuario_recepcion,
+                        f.escaneado_por
                     ].map(v => String(v || '').toLowerCase());
 
                     return campos.some(c => c.includes(texto));
@@ -1547,18 +1804,23 @@
             if (filtrados.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7" class="p-4 text-center text-xs text-slate-400">No hay registros que coincidan con la fecha o filtros aplicados.</td>
+                        <td colspan="8" class="p-4 text-center text-xs text-slate-400">No hay registros que coincidan con la fecha o filtros aplicados.</td>
                     </tr>
                 `;
                 return;
             }
 
-            tbody.innerHTML = filtrados.map(f => {
+            cacheFrascosDetalleGerencia.clear();
+
+            tbody.innerHTML = filtrados.map((f, idx) => {
+                const claveCache = String(f.id ?? `${f.codigo_frasco}-${idx}`);
+                cacheFrascosDetalleGerencia.set(claveCache, f);
+
                 const ord = f.ordenes_patologia || {};
                 const badgeClass = obtenerClaseEstadoFrasco(f.estado);
 
                 return `
-                <tr>
+                <tr class="hover:bg-slate-50/80 transition">
                     <td class="p-2 sm:p-2.5 font-mono font-bold text-slate-800">${f.codigo_frasco}</td>
                     <td class="p-2 sm:p-2.5">${ord.paciente_nombre || '-'}</td>
                     <td class="p-2 sm:p-2.5">${f.descripcion_anatomica}</td>
@@ -1569,6 +1831,13 @@
                         <span class="px-2 py-1 rounded-md text-[11px] sm:text-xs font-bold ${badgeClass}">
                             ${formatearEtiqueta(f.estado)}
                         </span>
+                    </td>
+                    <td class="p-2 sm:p-2.5 text-center">
+                        <button type="button" onclick="abrirDetalleFrasco('${claveCache}')" title="Ver detalle completo del frasco" aria-label="Ver detalle del frasco ${f.codigo_frasco}" class="inline-flex items-center justify-center p-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-950 transition shadow-2xs">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </button>
                     </td>
                 </tr>
             `;
