@@ -12,10 +12,17 @@
             background-color: #ffffff !important;
             color: #0f172a !important;
         }
+        input[type="checkbox"] {
+            background-color: #ffffff !important;
+            accent-color: #990820;
+        }
         input:focus, select:focus {
             outline: none;
             box-shadow: 0 0 0 2px #990820;
             border-color: #990820;
+        }
+        input[type="checkbox"]:focus {
+            box-shadow: none;
         }
     </style>
 </head>
@@ -29,7 +36,7 @@
             </div>
 
             <h2 class="text-lg font-bold text-slate-800 mb-1">Iniciar Sesión</h2>
-            <p class="text-xs text-slate-500 mb-6">Ingresus sus credenciales.</p>
+            <p class="text-xs text-slate-500 mb-6">Ingrese sus credenciales.</p>
 
             <form id="form-login" class="space-y-4">
                 <div>
@@ -40,6 +47,15 @@
                     <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Contraseña</label>
                     <input type="password" id="login-password" required class="w-full border border-slate-300 rounded-lg p-2.5 text-sm" placeholder="••••••••">
                 </div>
+
+                <div class="flex items-center justify-between pt-0.5">
+                    <label for="recordar-sesion" class="inline-flex items-center gap-2 cursor-pointer select-none text-xs font-medium text-slate-700">
+                        <input type="checkbox" id="recordar-sesion" class="w-4 h-4 rounded border-slate-300 cursor-pointer">
+                        <span>Recordar sesión</span>
+                    </label>
+                    <span class="text-[11px] text-slate-400">Se mantiene al recargar</span>
+                </div>
+
                 <p id="login-error" class="hidden text-xs text-red-600 font-semibold bg-red-50 p-2.5 rounded-lg border border-red-200"></p>
                 <button type="submit" id="btn-login" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-lg transition">
                     Ingresar al Sistema
@@ -53,10 +69,62 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV6aW1xdGxxbGF4eHVsaXplbndwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUzNjE0NjYsImV4cCI6MjExMDkzNzQ2Nn0.x2TJlGrelzVdsD0tyAms6jEVqzvnOp1RRstdXU8_B7o';
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        const STORAGE_RECORDAR = 'patologiacontrol_recordar_sesion';
+        const SESSION_PESTANA_ACTIVA = 'patologiacontrol_pestana_activa';
+
+        function leerPreferenciaRecordar() {
+            try {
+                return localStorage.getItem(STORAGE_RECORDAR) === '1';
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function guardarPreferenciaRecordar(recordar) {
+            try {
+                localStorage.setItem(STORAGE_RECORDAR, recordar ? '1' : '0');
+            } catch (_) {}
+        }
+
+        function marcarPestanaActiva() {
+            try {
+                sessionStorage.setItem(SESSION_PESTANA_ACTIVA, '1');
+            } catch (_) {}
+        }
+
+        function esPestanaActiva() {
+            try {
+                return sessionStorage.getItem(SESSION_PESTANA_ACTIVA) === '1';
+            } catch (_) {
+                return false;
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const recordarCheck = document.getElementById('recordar-sesion');
+            const recordarGuardado = leerPreferenciaRecordar();
+            if (recordarCheck) {
+                recordarCheck.checked = recordarGuardado;
+            }
+
+            const { data: { session } } = await db.auth.getSession();
+            if (session?.user) {
+                if (recordarGuardado || esPestanaActiva()) {
+                    marcarPestanaActiva();
+                    window.location.href = 'panelcontrol.html';
+                    return;
+                }
+
+                // Si "Recordar" no estaba marcado y se abrió una pestaña nueva tras cerrar la anterior
+                await db.auth.signOut();
+            }
+        });
+
         document.getElementById('form-login').addEventListener('submit', async (e) => {
             e.preventDefault();
             const errorEl = document.getElementById('login-error');
             const btn = document.getElementById('btn-login');
+            const recordar = Boolean(document.getElementById('recordar-sesion')?.checked);
             errorEl.classList.add('hidden');
 
             const email = document.getElementById('login-email').value.trim();
@@ -82,6 +150,8 @@
                     throw new Error('Tu usuario no tiene un rol asignado.');
                 }
 
+                guardarPreferenciaRecordar(recordar);
+                marcarPestanaActiva();
                 window.location.href = 'panelcontrol.html';
             } catch (err) {
                 errorEl.innerText = err.message;
