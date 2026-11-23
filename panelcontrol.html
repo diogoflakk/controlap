@@ -129,6 +129,17 @@
 
                             <div id="contenedor-frascos" class="space-y-3 bg-slate-50 p-3 sm:p-4 rounded-lg border border-slate-200"></div>
 
+                            <div id="wrap-monto-final-paquete" class="hidden bg-emerald-50/70 border border-emerald-300 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div>
+                                    <label for="monto_final_paquete" class="block text-xs font-bold uppercase text-emerald-950">📦 Precio / Monto Final del Paquete *</label>
+                                    <span class="text-[11px] text-emerald-800">Los frascos se registran en S/ 0.00 individuales y se cobra el monto final aquí.</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-sm font-bold text-emerald-950">S/</span>
+                                    <input type="number" step="0.01" min="0" id="monto_final_paquete" oninput="actualizarTotalOrden()" class="border border-emerald-400 rounded-lg px-3 py-2 text-sm font-mono font-bold text-right w-full sm:w-36" placeholder="0.00">
+                                </div>
+                            </div>
+
                             <div class="flex flex-wrap justify-between items-center gap-2 bg-slate-100 border border-slate-300 text-slate-800 px-3 sm:px-4 py-3 rounded-lg">
                                 <span class="text-xs uppercase font-bold text-slate-600">Total Boleta:</span>
                                 <span id="total-orden-preview" class="text-lg sm:text-xl font-black text-emerald-700">S/ 0.00</span>
@@ -1028,23 +1039,23 @@
                             <div class="md:col-span-4">
                                 <select id="estado_pago_frasco_${i}" name="estado_pago_frasco[]" onchange="alternarOpcionesFrasco(${i}); actualizarTotalOrden();" class="w-full border border-slate-300 rounded-md p-2 text-xs font-semibold">
                                     <option value="PAGADO" ${!esSeguro ? 'selected' : ''}>💰 Pagado Individual</option>
-                                    <option value="INCLUIDO_PAQUETE">📦 Incluido en Paquete (S/ 0)</option>
-                                    <option value="CORTESIA_AUTORIZADA">🎟️ Cortesía Autorizada (S/ 0)</option>
+                                    <option value="INCLUIDO_PAQUETE">📦 Incluido en Paquete</option>
+                                    <option value="CORTESIA_AUTORIZADA">🎟️ Cortesía Autorizada</option>
                                     <option value="SEGURO_CONVENIO" ${esSeguro ? 'selected' : ''} ${!esSeguro ? 'hidden disabled' : ''}>🏥 Seguro / Convenio</option>
                                 </select>
                             </div>
                             <div class="md:col-span-3">
-                                <input type="number" step="0.01" min="0" name="monto_frasco[]" oninput="actualizarTotalOrden()" required class="w-full border border-slate-300 rounded-md p-2 text-sm font-mono text-right" placeholder="S/ 0.00">
+                                <input type="number" step="0.01" min="0" id="monto_frasco_${i}" name="monto_frasco[]" oninput="actualizarTotalOrden()" required class="w-full border border-slate-300 rounded-md p-2 text-sm font-mono text-right" placeholder="S/ 0.00">
                             </div>
                         </div>
                         <div id="wrap_descuento_frasco_${i}" class="${esSeguro ? '' : 'hidden'} bg-sky-50 border border-sky-200 rounded-md p-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <div class="flex flex-col">
-                                <label for="descuento_frasco_${i}" class="text-xs font-bold text-sky-900">🏷️ Descuento Seguro / Convenio (Frasco ${i}):</label>
+                                <label for="descuento_frasco_${i}" class="text-xs font-bold text-sky-900">🏷️ Descuento Seguro / Convenio (%) (Frasco ${i}):</label>
                                 <span id="neto_frasco_${i}" class="text-[11px] font-semibold text-sky-700">Neto frasco: S/ 0.00</span>
                             </div>
                             <div class="flex items-center gap-1.5">
-                                <span class="text-xs font-bold text-sky-900">- S/</span>
-                                <input type="number" step="0.01" min="0" id="descuento_frasco_${i}" name="descuento_frasco[]" oninput="actualizarTotalOrden()" class="border border-sky-300 rounded-md px-2.5 py-1.5 text-xs font-mono text-right w-full sm:w-36" placeholder="0.00">
+                                <input type="number" step="0.01" min="0" max="100" id="descuento_frasco_${i}" name="descuento_frasco[]" oninput="actualizarTotalOrden()" class="border border-sky-300 rounded-md px-2.5 py-1.5 text-xs font-mono text-right w-full sm:w-28" placeholder="0">
+                                <span class="text-xs font-bold text-sky-900">%</span>
                             </div>
                         </div>
                         <div id="wrap_clave_cortesia_${i}" class="hidden bg-amber-50 border border-amber-300 rounded-md p-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -1060,12 +1071,35 @@
         function actualizarTotalOrden() {
             const estados = Array.from(document.getElementsByName('estado_pago_frasco[]'));
             const montos = Array.from(document.getElementsByName('monto_frasco[]'));
-            const descuentos = Array.from(document.getElementsByName('descuento_frasco[]'));
+            const descuentosPct = Array.from(document.getElementsByName('descuento_frasco[]'));
+            const cantFrascos = montos.length;
+
+            const hayPaquete = estados.some(s => s.value === 'INCLUIDO_PAQUETE');
+            const esModoPaqueteMultiple = hayPaquete && cantFrascos >= 2;
+
+            const wrapPaquete = document.getElementById('wrap-monto-final-paquete');
+            const inputMontoFinal = document.getElementById('monto_final_paquete');
+            if (wrapPaquete && inputMontoFinal) {
+                wrapPaquete.classList.toggle('hidden', !esModoPaqueteMultiple);
+                inputMontoFinal.required = esModoPaqueteMultiple;
+                if (!esModoPaqueteMultiple) {
+                    inputMontoFinal.value = '';
+                }
+            }
+
             let total = 0;
 
             montos.forEach((input, idx) => {
                 const estado = estados[idx].value;
                 const i = idx + 1;
+
+                if (esModoPaqueteMultiple) {
+                    input.value = '0.00';
+                    input.readOnly = true;
+                    const netoEl = document.getElementById(`neto_frasco_${i}`);
+                    if (netoEl) netoEl.innerText = 'Incluido en paquete (cobro al final)';
+                    return;
+                }
 
                 if (estado === 'INCLUIDO_PAQUETE' || estado === 'CORTESIA_AUTORIZADA') {
                     input.value = '0.00';
@@ -1073,18 +1107,24 @@
                 } else {
                     input.readOnly = false;
                     const montoBase = parseFloat(input.value) || 0;
-                    const desc = estado === 'SEGURO_CONVENIO' ? (parseFloat(descuentos[idx]?.value) || 0) : 0;
-                    const neto = Math.max(0, montoBase - desc);
+                    const pctRaw = estado === 'SEGURO_CONVENIO' ? (parseFloat(descuentosPct[idx]?.value) || 0) : 0;
+                    const pct = Math.min(100, Math.max(0, pctRaw));
+                    const descuentoMonto = montoBase * (pct / 100);
+                    const neto = Math.max(0, montoBase - descuentoMonto);
                     total += neto;
 
                     const netoEl = document.getElementById(`neto_frasco_${i}`);
                     if (netoEl) {
-                        netoEl.innerText = desc > 0
-                            ? `Neto frasco: S/ ${neto.toFixed(2)} (Descuento: -S/ ${desc.toFixed(2)})`
+                        netoEl.innerText = pct > 0
+                            ? `Neto frasco: S/ ${neto.toFixed(2)} (${pct}% = -S/ ${descuentoMonto.toFixed(2)})`
                             : `Neto frasco: S/ ${neto.toFixed(2)}`;
                     }
                 }
             });
+
+            if (esModoPaqueteMultiple && inputMontoFinal) {
+                total = Math.max(0, parseFloat(inputMontoFinal.value) || 0);
+            }
 
             document.getElementById('total-orden-preview').innerText = `S/ ${total.toFixed(2)}`;
             return total;
@@ -1192,11 +1232,19 @@
             const descripciones = Array.from(document.getElementsByName('desc_frasco[]')).map(i => i.value);
             const estadosPago = Array.from(document.getElementsByName('estado_pago_frasco[]')).map(i => i.value);
             const montosBaseFrasco = Array.from(document.getElementsByName('monto_frasco[]')).map(i => parseFloat(i.value) || 0);
-            const descuentosFrasco = Array.from(document.getElementsByName('descuento_frasco[]')).map(i => parseFloat(i.value) || 0);
+            const descuentosPctFrasco = Array.from(document.getElementsByName('descuento_frasco[]')).map(i => parseFloat(i.value) || 0);
             const clavesCortesia = Array.from(document.getElementsByName('clave_cortesia[]')).map(i => normalizarClaveCortesia(i.value));
+            const montoFinalPaquete = parseFloat(document.getElementById('monto_final_paquete')?.value) || 0;
+
+            const hayPaquete = estadosPago.some(est => est === 'INCLUIDO_PAQUETE');
+            const esModoPaqueteMultiple = hayPaquete && cant >= 2;
 
             if (codigoFcoManual && !/^[A-Z]{2}-\d{3}$/.test(codigoFcoManual)) {
                 return alert('⚠️ El código manual de frasco debe tener formato AA-000 (por ejemplo: CE-203).');
+            }
+
+            if (esModoPaqueteMultiple && montoFinalPaquete <= 0) {
+                return alert('⚠️ Ingresa el precio / monto final del paquete mayor a S/ 0.00.');
             }
 
             const requiereCortesia = estadosPago.some(est => est === 'CORTESIA_AUTORIZADA');
@@ -1215,21 +1263,21 @@
             for (let i = 0; i < cant; i++) {
                 const est = estadosPago[i];
                 const base = montosBaseFrasco[i];
-                const desc = est === 'SEGURO_CONVENIO' ? descuentosFrasco[i] : 0;
+                const pct = est === 'SEGURO_CONVENIO' ? descuentosPctFrasco[i] : 0;
 
-                if (est === 'PAGADO' && base <= 0) {
-                    return alert(`⚠️ Error en Frasco ${i + 1}: Está marcado como "Pagado Individual" pero tiene monto S/ 0.00.`);
+                if (est === 'SEGURO_CONVENIO' && (pct < 0 || pct > 100)) {
+                    return alert(`⚠️ Error en Frasco ${i + 1}: El porcentaje de descuento debe estar entre 0% y 100%.`);
                 }
-                if (est === 'SEGURO_CONVENIO' && desc > base) {
-                    return alert(`⚠️ Error en Frasco ${i + 1}: El descuento (S/ ${desc.toFixed(2)}) no puede ser mayor al monto del frasco (S/ ${base.toFixed(2)}).`);
+                if (!esModoPaqueteMultiple && est === 'PAGADO' && base <= 0) {
+                    return alert(`⚠️ Error en Frasco ${i + 1}: Está marcado como "Pagado Individual" pero tiene monto S/ 0.00.`);
                 }
                 if (est === 'CORTESIA_AUTORIZADA' && clavesCortesia[i] !== claveVigente) {
                     return alert(`🔐 Clave de cortesía incorrecta en Frasco ${i + 1}. Ingresaste "${clavesCortesia[i] || '(vacío)'}". Solicita la clave vigente en Gerencia.`);
                 }
 
-                const neto = (est === 'INCLUIDO_PAQUETE' || est === 'CORTESIA_AUTORIZADA')
+                const neto = (esModoPaqueteMultiple || est === 'INCLUIDO_PAQUETE' || est === 'CORTESIA_AUTORIZADA')
                     ? 0
-                    : Math.max(0, base - desc);
+                    : Math.max(0, base * (1 - (pct / 100)));
                 montosNetosFrasco.push(neto);
             }
 
@@ -1263,8 +1311,8 @@
             if (error) return alert('Error al registrar orden: ' + error.message);
 
             const frascosInsert = descripciones.map((desc, idx) => {
-                const descFinal = (estadosPago[idx] === 'SEGURO_CONVENIO' && descuentosFrasco[idx] > 0)
-                    ? `${desc} (Desc. S/ ${descuentosFrasco[idx].toFixed(2)})`
+                const descFinal = (!esModoPaqueteMultiple && estadosPago[idx] === 'SEGURO_CONVENIO' && descuentosPctFrasco[idx] > 0)
+                    ? `${desc} (Desc. ${descuentosPctFrasco[idx]}%)`
                     : desc;
 
                 return {
