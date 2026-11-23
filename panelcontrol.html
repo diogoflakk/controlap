@@ -24,6 +24,11 @@
             color: #64748b !important;
             cursor: not-allowed;
         }
+        /* Mantiene el drawer fijo y sin movimientos bruscos durante refrescos */
+        #drawer-detalle-frasco > aside {
+            transform: translate3d(0, 0, 0);
+            will-change: auto;
+        }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans antialiased">
@@ -33,9 +38,9 @@
 
 
     <!-- VENTANA LATERAL DE DETALLE DE ORDEN Y FRASCOS -->
-    <div id="drawer-detalle-frasco" class="hidden fixed inset-0 z-50 flex justify-end bg-slate-950/50 backdrop-blur-[1px]" onclick="if(event.target===this) cerrarDetalleFrasco()">
+    <div id="drawer-detalle-frasco" class="hidden fixed inset-0 z-50 flex justify-end bg-slate-950/50" onclick="if(event.target===this) cerrarDetalleFrasco()">
         <aside class="relative w-full max-w-lg bg-white h-full shadow-2xl border-l border-slate-200 flex flex-col justify-between overflow-hidden">
-            <div class="overflow-y-auto p-4 sm:p-6 space-y-5">
+            <div id="drawer-scroll-body" class="overflow-y-auto p-4 sm:p-6 space-y-5">
                 <div class="flex items-start justify-between gap-3 border-b border-slate-200 pb-4">
                     <div>
                         <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Expediente de Auditoría</span>
@@ -167,7 +172,7 @@
                     <img src="logo.png" alt="Logo PatologíaControl" class="h-8 sm:h-11 w-auto max-w-[110px] sm:max-w-[140px] object-contain">
                     <span class="text-base sm:text-lg font-bold tracking-tight">Patología <span style="color: #990820;"> Control</span></span>
                     <span id="badge-realtime" class="flex items-center gap-1 text-[10px] sm:text-[11px] font-mono bg-slate-800 border border-slate-700 px-2 py-0.5 rounded-full text-slate-300">
-                        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
                         CONECTANDO...
                     </span>
                 </div>
@@ -611,34 +616,44 @@
         let claveDrawerAbierta = null;
         let historialEscaneosTurno = [];
 
+        function actualizarTextoSiCambia(el, nuevoTexto) {
+            if (!el) return;
+            const textoStr = String(nuevoTexto ?? '');
+            if (el.innerText !== textoStr) {
+                el.innerText = textoStr;
+            }
+        }
+
+        function actualizarHtmlSiCambia(el, nuevoHtml) {
+            if (!el) return;
+            if (el.innerHTML !== nuevoHtml) {
+                el.innerHTML = nuevoHtml;
+            }
+        }
+
         function renderizarHistorialEscaneo() {
             const listaEl = document.getElementById('lista-ultimos-escaneos');
             if (!listaEl) return;
 
-            if (historialEscaneosTurno.length === 0) {
-                listaEl.innerHTML = `
-                    <div class="text-center text-slate-400 text-xs py-3 border border-dashed border-slate-200 rounded-lg">
-                        Aún no se han validado frascos en este turno.
+            const html = historialEscaneosTurno.length === 0
+                ? `<div class="text-center text-slate-400 text-xs py-3 border border-dashed border-slate-200 rounded-lg">Aún no se han validado frascos en este turno.</div>`
+                : historialEscaneosTurno.map((item) => `
+                    <div class="flex items-center justify-between gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-mono font-bold text-emerald-800">${item.codigo}</span>
+                                <span class="font-semibold text-slate-800 truncate">${item.paciente}</span>
+                                <span class="text-slate-500 truncate">• ${item.muestra}</span>
+                            </div>
+                            <div class="text-[10px] text-slate-400 mt-0.5">
+                                Validó: ${item.operador}
+                            </div>
+                        </div>
+                        <span class="font-mono text-[11px] text-slate-500 shrink-0">${item.hora}</span>
                     </div>
-                `;
-                return;
-            }
+                `).join('');
 
-            listaEl.innerHTML = historialEscaneosTurno.map((item) => `
-                <div class="flex items-center justify-between gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs">
-                    <div class="min-w-0">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <span class="font-mono font-bold text-emerald-800">${item.codigo}</span>
-                            <span class="font-semibold text-slate-800 truncate">${item.paciente}</span>
-                            <span class="text-slate-500 truncate">• ${item.muestra}</span>
-                        </div>
-                        <div class="text-[10px] text-slate-400 mt-0.5">
-                            Validó: ${item.operador}
-                        </div>
-                    </div>
-                    <span class="font-mono text-[11px] text-slate-500 shrink-0">${item.hora}</span>
-                </div>
-            `).join('');
+            actualizarHtmlSiCambia(listaEl, html);
         }
 
         function registrarEnHistorialEscaneo(datos) {
@@ -802,8 +817,8 @@
 
         async function abrirDetalleFrasco(claveCache, mantenerAbierto = false) {
             const drawer = document.getElementById('drawer-detalle-frasco');
-            const contenedorScrollDrawer = drawer ? drawer.querySelector('.overflow-y-auto') : null;
-            const posicionScrollAnterior = contenedorScrollDrawer ? contenedorScrollDrawer.scrollTop : 0;
+            const contenedorScrollDrawer = document.getElementById('drawer-scroll-body');
+            const scrollAnterior = contenedorScrollDrawer ? contenedorScrollDrawer.scrollTop : 0;
 
             let grupo = cacheOrdenesDetalle.get(String(claveCache));
 
@@ -850,39 +865,44 @@
             const eco = calcularDatosEconomicosOrden(frascos, ord);
             const estadoConsolidado = resolverEstadoConsolidadoOrden(frascos.map(f => f.estado));
 
-            document.getElementById('drawer-codigo-frasco').innerText = grupo.ordenBase || '---';
+            actualizarTextoSiCambia(document.getElementById('drawer-codigo-frasco'), grupo.ordenBase || '---');
 
             const badge = document.getElementById('drawer-estado-badge');
-            badge.className = `px-2.5 py-1 rounded-md text-[11px] font-bold ${obtenerClaseEstadoFrasco(estadoConsolidado)}`;
-            badge.innerText = formatearEtiqueta(estadoConsolidado);
+            const badgeClaseDeseada = `px-2.5 py-1 rounded-md text-[11px] font-bold ${obtenerClaseEstadoFrasco(estadoConsolidado)}`;
+            if (badge && badge.className !== badgeClaseDeseada) {
+                badge.className = badgeClaseDeseada;
+            }
+            actualizarTextoSiCambia(badge, formatearEtiqueta(estadoConsolidado));
 
-            document.getElementById('drawer-estado-pago').innerText = formatearEtiqueta(eco.estadoPago);
-            document.getElementById('drawer-precio-real').innerText = formatearSoles(eco.precioReal);
-            document.getElementById('drawer-precio-descuento').innerText = formatearSoles(eco.precioConDescuento);
-            document.getElementById('drawer-descuento-detalle').innerText = eco.pctDesc > 0
-                ? `${eco.pctDesc}% (-${formatearSoles(eco.montoDescuento)})`
-                : `0% (${formatearSoles(0)})`;
-            document.getElementById('drawer-total-orden').innerText = formatearSoles(eco.totalOrden);
+            actualizarTextoSiCambia(document.getElementById('drawer-estado-pago'), formatearEtiqueta(eco.estadoPago));
+            actualizarTextoSiCambia(document.getElementById('drawer-precio-real'), formatearSoles(eco.precioReal));
+            actualizarTextoSiCambia(document.getElementById('drawer-precio-descuento'), formatearSoles(eco.precioConDescuento));
+            actualizarTextoSiCambia(
+                document.getElementById('drawer-descuento-detalle'),
+                eco.pctDesc > 0
+                    ? `${eco.pctDesc}% (-${formatearSoles(eco.montoDescuento)})`
+                    : `0% (${formatearSoles(0)})`
+            );
+            actualizarTextoSiCambia(document.getElementById('drawer-total-orden'), formatearSoles(eco.totalOrden));
 
-            document.getElementById('drawer-paciente-nombre').innerText = ord.paciente_nombre || '-';
-            document.getElementById('drawer-paciente-dni').innerText = ord.paciente_dni || 'No registrado';
-            document.getElementById('drawer-metodo-pago').innerText = formatearEtiqueta(ord.tipo_pago || '-');
-            document.getElementById('drawer-comprobante').innerText = ord.numero_comprobante || '-';
+            actualizarTextoSiCambia(document.getElementById('drawer-paciente-nombre'), ord.paciente_nombre || '-');
+            actualizarTextoSiCambia(document.getElementById('drawer-paciente-dni'), ord.paciente_dni || 'No registrado');
+            actualizarTextoSiCambia(document.getElementById('drawer-metodo-pago'), formatearEtiqueta(ord.tipo_pago || '-'));
+            actualizarTextoSiCambia(document.getElementById('drawer-comprobante'), ord.numero_comprobante || '-');
             const cantTotal = ord.cantidad_frascos_declarados || frascos.length;
-            document.getElementById('drawer-cantidad-frascos').innerText = `${cantTotal} frasco(s)`;
-            document.getElementById('drawer-medico-remitente').innerText = ord.medico_remitente || '-';
+            actualizarTextoSiCambia(document.getElementById('drawer-cantidad-frascos'), `${cantTotal} frasco(s)`);
+            actualizarTextoSiCambia(document.getElementById('drawer-medico-remitente'), ord.medico_remitente || '-');
 
             const muestrasTexto = frascos.map(f => f.descripcion_anatomica).filter(Boolean).join(', ');
-            document.getElementById('drawer-muestra').innerText = muestrasTexto || '-';
+            actualizarTextoSiCambia(document.getElementById('drawer-muestra'), muestrasTexto || '-');
 
             const contadorEl = document.getElementById('drawer-contador-frascos');
             const listaFrascosEl = document.getElementById('drawer-lista-frascos');
-            contadorEl.innerText = `${frascos.length} ${frascos.length === 1 ? 'frasco' : 'frascos'}`;
+            actualizarTextoSiCambia(contadorEl, `${frascos.length} ${frascos.length === 1 ? 'frasco' : 'frascos'}`);
 
-            if (frascos.length === 0) {
-                listaFrascosEl.innerHTML = `<div class="bg-white border border-indigo-200 rounded-lg p-2.5 text-slate-500">Sin frascos registrados.</div>`;
-            } else {
-                listaFrascosEl.innerHTML = frascos.map((f) => {
+            const htmlFrascos = frascos.length === 0
+                ? `<div class="bg-white border border-indigo-200 rounded-lg p-2.5 text-slate-500">Sin frascos registrados.</div>`
+                : frascos.map((f) => {
                     const badgeF = obtenerClaseEstadoFrasco(f.estado);
                     const escInfo = f.escaneado_por
                         ? `Escaneó: ${formatearRegistradoPor(f.escaneado_por)}${f.fecha_escaneo_macro ? ` (${formatearFechaHoraLegible(f.fecha_escaneo_macro)})` : ''}`
@@ -902,28 +922,27 @@
                         </div>
                     `;
                 }).join('');
-            }
+            actualizarHtmlSiCambia(listaFrascosEl, htmlFrascos);
 
-            document.getElementById('drawer-registrado-por').innerText = formatearRegistradoPor(ord.usuario_recepcion);
-            document.getElementById('drawer-fecha-registro').innerText = formatearFechaHoraLegible(
-                primerFrasco.fecha_creacion || primerFrasco.created_at
+            actualizarTextoSiCambia(document.getElementById('drawer-registrado-por'), formatearRegistradoPor(ord.usuario_recepcion));
+            actualizarTextoSiCambia(
+                document.getElementById('drawer-fecha-registro'),
+                formatearFechaHoraLegible(primerFrasco.fecha_creacion || primerFrasco.created_at)
             );
 
             const escaneados = frascos.filter(f => f.escaneado_por);
             if (escaneados.length > 0) {
                 const ultimoEsc = escaneados[escaneados.length - 1];
                 const operadoresUnicos = Array.from(new Set(escaneados.map(f => formatearRegistradoPor(f.escaneado_por))));
-                document.getElementById('drawer-escaneado-por').innerText = operadoresUnicos.join(', ');
-                document.getElementById('drawer-fecha-escaneo').innerText = formatearFechaHoraLegible(ultimoEsc.fecha_escaneo_macro);
+                actualizarTextoSiCambia(document.getElementById('drawer-escaneado-por'), operadoresUnicos.join(', '));
+                actualizarTextoSiCambia(document.getElementById('drawer-fecha-escaneo'), formatearFechaHoraLegible(ultimoEsc.fecha_escaneo_macro));
             } else {
-                document.getElementById('drawer-escaneado-por').innerText = 'Aún no escaneado';
-                document.getElementById('drawer-fecha-escaneo').innerText = '-';
+                actualizarTextoSiCambia(document.getElementById('drawer-escaneado-por'), 'Aún no escaneado');
+                actualizarTextoSiCambia(document.getElementById('drawer-fecha-escaneo'), '-');
             }
 
             const bloqueInc = document.getElementById('drawer-bloque-incidencias');
             const listaInc = document.getElementById('drawer-lista-incidencias');
-            bloqueInc.classList.add('hidden');
-            listaInc.innerHTML = '';
 
             if (grupo.ordenBase) {
                 const { data: incidencias } = await db
@@ -934,7 +953,7 @@
 
                 if (incidencias && incidencias.length > 0) {
                     bloqueInc.classList.remove('hidden');
-                    listaInc.innerHTML = incidencias.map(inc => `
+                    const htmlInc = incidencias.map(inc => `
                         <div class="bg-white border border-red-200 rounded-lg p-2.5">
                             <div class="flex justify-between items-center gap-2 font-bold text-red-800">
                                 <span>${formatearEtiqueta(inc.estado_auditoria)}</span>
@@ -944,7 +963,14 @@
                             <p class="text-[11px] text-slate-500 mt-0.5">Origen: ${inc.quien_entrego || 'No especificado'} • Detectó: ${inc.detectado_por || '-'}</p>
                         </div>
                     `).join('');
+                    actualizarHtmlSiCambia(listaInc, htmlInc);
+                } else {
+                    bloqueInc.classList.add('hidden');
+                    actualizarHtmlSiCambia(listaInc, '');
                 }
+            } else {
+                bloqueInc.classList.add('hidden');
+                actualizarHtmlSiCambia(listaInc, '');
             }
 
             if (!mantenerAbierto) {
@@ -952,13 +978,8 @@
                 if (contenedorScrollDrawer) {
                     contenedorScrollDrawer.scrollTop = 0;
                 }
-            } else if (!drawer.classList.contains('hidden')) {
-                drawer.classList.remove('hidden');
-                if (contenedorScrollDrawer) {
-                    requestAnimationFrame(() => {
-                        contenedorScrollDrawer.scrollTop = posicionScrollAnterior;
-                    });
-                }
+            } else if (contenedorScrollDrawer) {
+                contenedorScrollDrawer.scrollTop = scrollAnterior;
             }
         }
 
@@ -1099,7 +1120,7 @@
 
             if (!error && data?.ultima_clave) {
                 const matchBase = String(data.ultima_clave).toUpperCase().match(/^([A-Z]{2}-\d{3})/);
-                badge.innerText = `Último: ${matchBase ? matchBase[1] : data.ultima_clave}`;
+                actualizarTextoSiCambia(badge, `Último: ${matchBase ? matchBase[1] : data.ultima_clave}`);
                 return;
             }
 
@@ -1112,9 +1133,9 @@
 
             if (ultimoFco?.codigo_frasco) {
                 const matchBase = String(ultimoFco.codigo_frasco).toUpperCase().match(/^([A-Z]{2}-\d{3})/);
-                badge.innerText = `Último: ${matchBase ? matchBase[1] : ultimoFco.codigo_frasco}`;
+                actualizarTextoSiCambia(badge, `Último: ${matchBase ? matchBase[1] : ultimoFco.codigo_frasco}`);
             } else {
-                badge.innerText = 'Último: ---';
+                actualizarTextoSiCambia(badge, 'Último: ---');
             }
         }
 
@@ -1167,15 +1188,18 @@
             if (!puedeVer) return;
 
             const claveMostrada = claveCortesiaActiva || obtenerClaveCortesiaVigente();
-            claveEl.innerText = claveMostrada;
+            actualizarTextoSiCambia(claveEl, claveMostrada);
 
             const fechaRef = claveActualizadaEn ? new Date(claveActualizadaEn) : new Date();
             const horaTexto = Number.isNaN(fechaRef.getTime())
                 ? ''
                 : fechaRef.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            vigenciaEl.innerText = horaTexto
-                ? `Sincronizada en tiempo real • Actualizada a las ${horaTexto}  `
-                : 'Sincronizada en tiempo real • ';
+            actualizarTextoSiCambia(
+                vigenciaEl,
+                horaTexto
+                    ? `Sincronizada en tiempo real • Actualizada a las ${horaTexto}  `
+                    : 'Sincronizada en tiempo real • '
+            );
         }
 
         async function sincronizarClaveCortesiaDesdeDB(estricto = false) {
@@ -1458,12 +1482,13 @@
                     cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia')
                 ]);
 
-                if (claveDrawerAbierta) {
-                    await abrirDetalleFrasco(claveDrawerAbierta, true);
-                }
-
                 if (pestanasPermitidas.includes('auditoria')) {
                     await sincronizarClaveCortesiaDesdeDB(false);
+                }
+
+                const drawer = document.getElementById('drawer-detalle-frasco');
+                if (drawer && !drawer.classList.contains('hidden') && claveDrawerAbierta) {
+                    await abrirDetalleFrasco(claveDrawerAbierta, true);
                 }
             } finally {
                 refrescandoEnCurso = false;
@@ -2062,7 +2087,7 @@
             const fechaSel = document.getElementById('filtro-fecha-recepcion')?.value || obtenerFechaLocalYYYYMMDD();
             const subtitulo = document.getElementById('subtitulo-fecha-recepcion');
             if (subtitulo) {
-                subtitulo.innerText = `Mostrando órdenes ${formatearFechaLegible(fechaSel)} • Orden: más antiguo al más nuevo`;
+                actualizarTextoSiCambia(subtitulo, `Mostrando órdenes ${formatearFechaLegible(fechaSel)} • Orden: más antiguo al más nuevo`);
             }
 
             const { data } = await db
@@ -2077,34 +2102,29 @@
             const tbody = document.getElementById('tabla-recepcion-vivo');
             if (!tbody) return;
 
-            if (ordenesAgrupadas.length === 0) {
-                tbody.innerHTML = `
+            const html = ordenesAgrupadas.length === 0
+                ? `<tr><td colspan="5" class="p-4 text-center text-xs text-slate-400">No hay órdenes registradas para ${formatearFechaLegible(fechaSel)}.</td></tr>`
+                : ordenesAgrupadas.map(grp => {
+                    const estadoConsolidado = resolverEstadoConsolidadoOrden(grp.estados);
+                    const badgeClass = obtenerClaseEstadoFrasco(estadoConsolidado);
+                    const muestrasTexto = grp.muestras.length > 0 ? grp.muestras.join(', ') : '-';
+
+                    return `
                     <tr>
-                        <td colspan="5" class="p-4 text-center text-xs text-slate-400">No hay órdenes registradas para ${formatearFechaLegible(fechaSel)}.</td>
+                        <td class="p-2 sm:p-2.5 font-mono font-bold text-slate-800">${grp.ordenBase}</td>
+                        <td class="p-2 sm:p-2.5">${grp.pacienteNombre}</td>
+                        <td class="p-2 sm:p-2.5">${muestrasTexto}</td>
+                        <td class="p-2 sm:p-2.5 text-slate-700 font-medium">${grp.registradoPor}</td>
+                        <td class="p-2 sm:p-2.5">
+                            <span class="px-2 py-1 rounded-md text-[11px] sm:text-xs font-bold ${badgeClass}">
+                                ${formatearEtiqueta(estadoConsolidado)}
+                            </span>
+                        </td>
                     </tr>
                 `;
-                return;
-            }
+                }).join('');
 
-            tbody.innerHTML = ordenesAgrupadas.map(grp => {
-                const estadoConsolidado = resolverEstadoConsolidadoOrden(grp.estados);
-                const badgeClass = obtenerClaseEstadoFrasco(estadoConsolidado);
-                const muestrasTexto = grp.muestras.length > 0 ? grp.muestras.join(', ') : '-';
-
-                return `
-                <tr>
-                    <td class="p-2 sm:p-2.5 font-mono font-bold text-slate-800">${grp.ordenBase}</td>
-                    <td class="p-2 sm:p-2.5">${grp.pacienteNombre}</td>
-                    <td class="p-2 sm:p-2.5">${muestrasTexto}</td>
-                    <td class="p-2 sm:p-2.5 text-slate-700 font-medium">${grp.registradoPor}</td>
-                    <td class="p-2 sm:p-2.5">
-                        <span class="px-2 py-1 rounded-md text-[11px] sm:text-xs font-bold ${badgeClass}">
-                            ${formatearEtiqueta(estadoConsolidado)}
-                        </span>
-                    </td>
-                </tr>
-            `;
-            }).join('');
+            actualizarHtmlSiCambia(tbody, html);
         }
 
         async function cargarFrascosDetallados(tbodyId, prefijoFiltro = 'gerencia') {
@@ -2114,7 +2134,7 @@
             const fechaSel = document.getElementById(`filtro-fecha-${prefijoFiltro}`)?.value || obtenerFechaLocalYYYYMMDD();
             const subtitulo = document.getElementById(`subtitulo-fecha-${prefijoFiltro}`);
             if (subtitulo) {
-                subtitulo.innerText = `Mostrando órdenes ${formatearFechaLegible(fechaSel)} • Orden: más antiguo al más nuevo`;
+                actualizarTextoSiCambia(subtitulo, `Mostrando órdenes ${formatearFechaLegible(fechaSel)} • Orden: más antiguo al más nuevo`);
             }
 
             const texto = (document.getElementById(`filtro-texto-${prefijoFiltro}`)?.value || '').trim().toLowerCase();
@@ -2152,15 +2172,14 @@
             });
 
             if (filtradas.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="8" class="p-4 text-center text-xs text-slate-400">No hay órdenes que coincidan con la fecha o filtros aplicados.</td>
-                    </tr>
-                `;
+                actualizarHtmlSiCambia(
+                    tbody,
+                    `<tr><td colspan="8" class="p-4 text-center text-xs text-slate-400">No hay órdenes que coincidan con la fecha o filtros aplicados.</td></tr>`
+                );
                 return;
             }
 
-            tbody.innerHTML = filtradas.map((grp, idx) => {
+            const html = filtradas.map((grp, idx) => {
                 const claveCache = `${prefijoFiltro}-${grp.claveGrupo || idx}`;
                 cacheOrdenesDetalle.set(claveCache, grp);
 
@@ -2191,6 +2210,8 @@
                 </tr>
             `;
             }).join('');
+
+            actualizarHtmlSiCambia(tbody, html);
         }
 
         async function toggleCamaraEscaneo() {
@@ -2436,55 +2457,50 @@
                 .reduce((acc, i) => acc + Number(i.monto_regularizado || 0), 0);
             const dineroTotalReal = dineroCaja + dineroRegularizado;
 
-            document.getElementById('kpi-registrados').innerText = totalReg;
-            document.getElementById('kpi-escaneados').innerText = totalEsc;
-            document.getElementById('kpi-huerfanos').innerText = totalHuerf;
-            document.getElementById('kpi-dinero-caja').innerText = `S/ ${dineroCaja.toFixed(2)}`;
-            document.getElementById('kpi-dinero-total').innerText = `S/ ${dineroTotalReal.toFixed(2)}`;
-            document.getElementById('kpi-regularizado-detalle').innerText = `+ S/ ${dineroRegularizado.toFixed(2)} regularizado`;
+            actualizarTextoSiCambia(document.getElementById('kpi-registrados'), totalReg);
+            actualizarTextoSiCambia(document.getElementById('kpi-escaneados'), totalEsc);
+            actualizarTextoSiCambia(document.getElementById('kpi-huerfanos'), totalHuerf);
+            actualizarTextoSiCambia(document.getElementById('kpi-dinero-caja'), `S/ ${dineroCaja.toFixed(2)}`);
+            actualizarTextoSiCambia(document.getElementById('kpi-dinero-total'), `S/ ${dineroTotalReal.toFixed(2)}`);
+            actualizarTextoSiCambia(document.getElementById('kpi-regularizado-detalle'), `+ S/ ${dineroRegularizado.toFixed(2)} regularizado`);
 
             const tbody = document.getElementById('tabla-incidencias');
             if (!tbody) return;
 
-            if (incidenciasDia.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="7" class="p-4 text-center text-xs text-slate-400">No hay incidencias registradas para ${formatearFechaLegible(fechaSel)}.</td>
+            const html = incidenciasDia.length === 0
+                ? `<tr><td colspan="7" class="p-4 text-center text-xs text-slate-400">No hay incidencias registradas para ${formatearFechaLegible(fechaSel)}.</td></tr>`
+                : incidenciasDia.map(inc => {
+                    const esRegularizado = inc.estado_auditoria === 'REGULARIZADO_PAGO';
+                    const esPendiente = inc.estado_auditoria === 'PENDIENTE_REGULARIZAR';
+                    const badgeClass = esPendiente
+                        ? 'bg-red-100 text-red-700'
+                        : (esRegularizado ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700');
+
+                    return `
+                    <tr class="${esPendiente ? 'bg-red-50/40' : ''}">
+                        <td class="p-2 sm:p-3 text-xs">${new Date(inc.fecha_deteccion).toLocaleString()}</td>
+                        <td class="p-2 sm:p-3 font-mono font-bold">${inc.nombre_etiqueta_manual}</td>
+                        <td class="p-2 sm:p-3">${inc.descripcion_muestra}</td>
+                        <td class="p-2 sm:p-3">${inc.quien_entrego || 'No especificado'}</td>
+                        <td class="p-2 sm:p-3">
+                            <span class="px-2 py-1 rounded-md text-[11px] sm:text-xs font-bold ${badgeClass}">
+                                ${formatearEtiqueta(inc.estado_auditoria)}
+                            </span>
+                        </td>
+                        <td class="p-2 sm:p-3 font-mono font-bold text-xs">
+                            ${esRegularizado ? `S/ ${Number(inc.monto_regularizado || 0).toFixed(2)} (${inc.comprobante_regularizacion || '-'})` : 'S/ 0.00'}
+                        </td>
+                        <td class="p-2 sm:p-3">
+                            ${esPendiente ? `
+                                <button onclick="regularizarConPago('${inc.id}')" class="text-xs bg-emerald-700 hover:bg-emerald-800 text-white px-2.5 py-1 rounded-md mr-1 transition">Regularizó Pago</button>
+                                <button onclick="marcarComoError('${inc.id}')" class="text-xs bg-slate-600 text-white px-2.5 py-1 rounded-md">Fue Error</button>
+                            ` : 'Cerrado'}
+                        </td>
                     </tr>
                 `;
-                return;
-            }
+                }).join('');
 
-            tbody.innerHTML = incidenciasDia.map(inc => {
-                const esRegularizado = inc.estado_auditoria === 'REGULARIZADO_PAGO';
-                const esPendiente = inc.estado_auditoria === 'PENDIENTE_REGULARIZAR';
-                const badgeClass = esPendiente
-                    ? 'bg-red-100 text-red-700'
-                    : (esRegularizado ? 'bg-emerald-700 text-white' : 'bg-slate-200 text-slate-700');
-
-                return `
-                <tr class="${esPendiente ? 'bg-red-50/40' : ''}">
-                    <td class="p-2 sm:p-3 text-xs">${new Date(inc.fecha_deteccion).toLocaleString()}</td>
-                    <td class="p-2 sm:p-3 font-mono font-bold">${inc.nombre_etiqueta_manual}</td>
-                    <td class="p-2 sm:p-3">${inc.descripcion_muestra}</td>
-                    <td class="p-2 sm:p-3">${inc.quien_entrego || 'No especificado'}</td>
-                    <td class="p-2 sm:p-3">
-                        <span class="px-2 py-1 rounded-md text-[11px] sm:text-xs font-bold ${badgeClass}">
-                            ${formatearEtiqueta(inc.estado_auditoria)}
-                        </span>
-                    </td>
-                    <td class="p-2 sm:p-3 font-mono font-bold text-xs">
-                        ${esRegularizado ? `S/ ${Number(inc.monto_regularizado || 0).toFixed(2)} (${inc.comprobante_regularizacion || '-'})` : 'S/ 0.00'}
-                    </td>
-                    <td class="p-2 sm:p-3">
-                        ${esPendiente ? `
-                            <button onclick="regularizarConPago('${inc.id}')" class="text-xs bg-emerald-700 hover:bg-emerald-800 text-white px-2.5 py-1 rounded-md mr-1 transition">Regularizó Pago</button>
-                            <button onclick="marcarComoError('${inc.id}')" class="text-xs bg-slate-600 text-white px-2.5 py-1 rounded-md">Fue Error</button>
-                        ` : 'Cerrado'}
-                    </td>
-                </tr>
-            `;
-            }).join('');
+            actualizarHtmlSiCambia(tbody, html);
         }
 
         async function regularizarConPago(id) {
