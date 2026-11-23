@@ -24,7 +24,6 @@
             color: #64748b !important;
             cursor: not-allowed;
         }
-        /* Mantiene el drawer fijo y sin movimientos bruscos durante refrescos */
         #drawer-detalle-frasco > aside {
             transform: translate3d(0, 0, 0);
             will-change: auto;
@@ -488,7 +487,7 @@
                 <div id="panel-clave-cortesia" class="bg-amber-50 border border-amber-300 rounded-xl p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3 shadow-sm">
                     <div class="space-y-0.5">
                         <div class="text-xs font-bold uppercase text-amber-900">🔐 Clave Variable Vigente de Cortesía</div>
-                        <p id="vigencia-clave-cortesia" class="text-[11px] text-amber-800">Sincronizada en tiempo real •</p>
+                        <p id="vigencia-clave-cortesia" class="text-[11px] text-amber-800">Auto-regeneración cada 2 horas • Sincronizada en tiempo real</p>
                     </div>
                     <div class="flex items-center gap-2">
                         <span id="valor-clave-cortesia" class="font-mono text-sm sm:text-base font-black bg-white border border-amber-400 text-slate-900 px-3 py-1 rounded-lg">ABC-0000</span>
@@ -598,12 +597,15 @@
         };
 
         const STORAGE_CLAVE_CORTESIA = 'patologiacontrol_clave_cortesia_activa';
+        const STORAGE_CLAVE_CORTESIA_TS = 'patologiacontrol_clave_cortesia_ts';
+        const INTERVALO_AUTO_CLAVE_MS = 2 * 60 * 60 * 1000; // 2 horas
 
         let rolActual = null;
         let nombreUsuarioActual = null;
         let pestanasPermitidas = [];
         let canalRealtime = null;
         let intervaloRespaldoSync = null;
+        let intervaloAutoClaveCortesia = null;
         let refrescandoEnCurso = false;
         let refrescoPendiente = false;
         let toastTimeout = null;
@@ -1168,7 +1170,29 @@
             claveActualizadaEn = fechaIso;
             try {
                 localStorage.setItem(STORAGE_CLAVE_CORTESIA, limpia);
+                localStorage.setItem(STORAGE_CLAVE_CORTESIA_TS, fechaIso);
             } catch (_) {}
+        }
+
+        function obtenerTimestampUltimaClave() {
+            if (claveActualizadaEn) {
+                const ms = new Date(claveActualizadaEn).getTime();
+                if (!Number.isNaN(ms)) return ms;
+            }
+            try {
+                const tsStorage = localStorage.getItem(STORAGE_CLAVE_CORTESIA_TS);
+                if (tsStorage) {
+                    const ms = new Date(tsStorage).getTime();
+                    if (!Number.isNaN(ms)) return ms;
+                }
+            } catch (_) {}
+            return 0;
+        }
+
+        function haExpiradoClave2Horas() {
+            const ultimoMs = obtenerTimestampUltimaClave();
+            if (!ultimoMs) return false;
+            return (Date.now() - ultimoMs) >= INTERVALO_AUTO_CLAVE_MS;
         }
 
         function renderizarClaveCortesiaUI() {
@@ -1197,8 +1221,8 @@
             actualizarTextoSiCambia(
                 vigenciaEl,
                 horaTexto
-                    ? `Sincronizada en tiempo real • Actualizada a las ${horaTexto}  `
-                    : 'Sincronizada en tiempo real • '
+                    ? `Auto-regeneración cada 2h • Actualizada a las ${horaTexto}`
+                    : 'Auto-regeneración cada 2h • Sincronizada en tiempo real'
             );
         }
 
@@ -1211,6 +1235,10 @@
 
             if (!error && data && esFormatoClaveCortesiaValido(data.clave_activa)) {
                 guardarClaveLocal(data.clave_activa, data.actualizada_en || new Date().toISOString());
+                if (haExpiradoClave2Horas()) {
+                    await actualizarClaveCortesiaPanel(true, true);
+                    return claveCortesiaActiva;
+                }
                 renderizarClaveCortesiaUI();
                 return claveCortesiaActiva;
             }
@@ -1221,16 +1249,24 @@
 
             if (!claveCortesiaActiva) {
                 let guardada = null;
+                let tsGuardado = null;
                 try {
                     guardada = localStorage.getItem(STORAGE_CLAVE_CORTESIA);
+                    tsGuardado = localStorage.getItem(STORAGE_CLAVE_CORTESIA_TS);
                 } catch (_) {}
 
                 if (esFormatoClaveCortesiaValido(guardada)) {
-                    guardarClaveLocal(guardada);
+                    guardarClaveLocal(guardada, tsGuardado || new Date().toISOString());
                 } else {
-                    guardarClaveLocal(generarClaveCortesiaAleatoria());
+                    guardarClaveLocal(generarClaveCortesiaAleatoria(), new Date().toISOString());
                 }
             }
+
+            if (haExpiradoClave2Horas()) {
+                await actualizarClaveCortesiaPanel(true, true);
+                return claveCortesiaActiva;
+            }
+
             renderizarClaveCortesiaUI();
             return claveCortesiaActiva;
         }
@@ -1238,26 +1274,23 @@
         function obtenerClaveCortesiaVigente() {
             if (!claveCortesiaActiva) {
                 let guardada = null;
+                let tsGuardado = null;
                 try {
                     guardada = localStorage.getItem(STORAGE_CLAVE_CORTESIA);
+                    tsGuardado = localStorage.getItem(STORAGE_CLAVE_CORTESIA_TS);
                 } catch (_) {}
 
                 if (esFormatoClaveCortesiaValido(guardada)) {
-                    guardarClaveLocal(guardada);
+                    guardarClaveLocal(guardada, tsGuardado || new Date().toISOString());
                 } else {
-                    guardarClaveLocal(generarClaveCortesiaAleatoria());
+                    guardarClaveLocal(generarClaveCortesiaAleatoria(), new Date().toISOString());
                 }
             }
             return claveCortesiaActiva;
         }
 
-        async function actualizarClaveCortesiaPanel(forzarNueva = false) {
+        async function actualizarClaveCortesiaPanel(forzarNueva = false, silencioso = false) {
             if (!forzarNueva) {
-                await sincronizarClaveCortesiaDesdeDB(false);
-                return;
-            }
-
-            if (!esRolGerencia()) {
                 await sincronizarClaveCortesiaDesdeDB(false);
                 return;
             }
@@ -1282,13 +1315,32 @@
                 .single();
 
             if (error) {
-                alert('⚠️ No se pudo guardar la clave en Supabase (' + error.message + '). Ejecuta el SQL de configuracion_cortesia en el SQL Editor.');
+                guardarClaveLocal(nuevaClave, ahoraIso);
+                renderizarClaveCortesiaUI();
+                if (!silencioso) {
+                    mostrarToast(`🔐 Nueva clave generada localmente: ${claveCortesiaActiva}`);
+                }
                 return;
             }
 
             guardarClaveLocal(data.clave_activa, data.actualizada_en || ahoraIso);
             renderizarClaveCortesiaUI();
-            mostrarToast(`🔐 Nueva clave de cortesía sincronizada: ${claveCortesiaActiva}`);
+            if (!silencioso) {
+                mostrarToast(`🔐 Nueva clave de cortesía actualizada: ${claveCortesiaActiva}`);
+            }
+        }
+
+        function iniciarAutoRotacionClave2Horas() {
+            if (intervaloAutoClaveCortesia) {
+                clearInterval(intervaloAutoClaveCortesia);
+            }
+
+            intervaloAutoClaveCortesia = setInterval(async () => {
+                if (!rolActual) return;
+                if (haExpiradoClave2Horas()) {
+                    await actualizarClaveCortesiaPanel(true, false);
+                }
+            }, 60 * 1000); // Revisa cada minuto si ya pasaron 2 horas
         }
 
         async function copiarClaveCortesia() {
@@ -1543,6 +1595,7 @@
 
             inicializarFiltrosFechaEstadoVivo();
             await sincronizarClaveCortesiaDesdeDB(false);
+            iniciarAutoRotacionClave2Horas();
             iniciarRealtime();
             await refrescarAreasActivas();
 
@@ -1556,6 +1609,10 @@
             if (intervaloRespaldoSync) {
                 clearInterval(intervaloRespaldoSync);
                 intervaloRespaldoSync = null;
+            }
+            if (intervaloAutoClaveCortesia) {
+                clearInterval(intervaloAutoClaveCortesia);
+                intervaloAutoClaveCortesia = null;
             }
             if (canalRealtime) {
                 await db.removeChannel(canalRealtime);
