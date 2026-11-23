@@ -32,7 +32,7 @@
     <div id="toast-evento" class="hidden fixed bottom-4 right-4 left-4 sm:left-auto z-50 max-w-sm bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl text-xs font-medium" style="border: 1px solid rgba(153, 8, 32, 0.55);"></div>
 
 
-    <!-- VENTANA LATERAL DE DETALLE DE FRASCO -->
+    <!-- VENTANA LATERAL DE DETALLE DE ORDEN Y FRASCOS -->
     <div id="drawer-detalle-frasco" class="hidden fixed inset-0 z-50 flex justify-end bg-slate-950/50 backdrop-blur-[1px]" onclick="if(event.target===this) cerrarDetalleFrasco()">
         <aside class="relative w-full max-w-lg bg-white h-full shadow-2xl border-l border-slate-200 flex flex-col justify-between overflow-hidden">
             <div class="overflow-y-auto p-4 sm:p-6 space-y-5">
@@ -107,10 +107,19 @@
                             <dd id="drawer-medico-remitente" class="font-semibold text-slate-800 mt-0.5">-</dd>
                         </div>
                         <div class="sm:col-span-2">
-                            <dt class="text-[10px] font-bold uppercase text-slate-400">Muestra / Descripción Anatómica</dt>
+                            <dt class="text-[10px] font-bold uppercase text-slate-400">Muestras de la Orden</dt>
                             <dd id="drawer-muestra" class="font-semibold text-slate-900 mt-0.5">-</dd>
                         </div>
                     </dl>
+                </div>
+
+                <!-- FRASCOS DE LA ORDEN (1 O MÁS) -->
+                <div class="bg-indigo-50/60 border border-indigo-200 rounded-xl p-4 space-y-2.5">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs font-bold uppercase text-indigo-950">🧪 Frascos de la Orden</span>
+                        <span id="drawer-contador-frascos" class="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-white border border-indigo-200 text-indigo-800">0 frascos</span>
+                    </div>
+                    <div id="drawer-lista-frascos" class="space-y-2 text-xs"></div>
                 </div>
 
                 <!-- TRAZABILIDAD DE REGISTRO Y ESCANEO -->
@@ -138,7 +147,7 @@
 
                 <!-- INCIDENCIAS RELACIONADAS -->
                 <div id="drawer-bloque-incidencias" class="hidden bg-red-50 border border-red-200 rounded-xl p-4 space-y-2">
-                    <div class="text-xs font-bold uppercase text-red-800">🚨 Incidencias Vinculadas a Este Frasco</div>
+                    <div class="text-xs font-bold uppercase text-red-800">🚨 Incidencias Vinculadas a Esta Orden</div>
                     <div id="drawer-lista-incidencias" class="space-y-2 text-xs"></div>
                 </div>
             </div>
@@ -412,11 +421,11 @@
                     </div>
                 </div>
 
-                <!-- MISMA ESTRUCTURA DE GERENCIA PARA MACROSCOPIA -->
+                <!-- ÓRDENES EN MACROSCOPIA (CE-XXX) -->
                 <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200">
                     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3">
                         <div>
-                            <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-700">Estado de Frascos Registrados</h3>
+                            <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-700">Estado de Órdenes Registradas (CE-XXX)</h3>
                             <p id="subtitulo-fecha-macro" class="text-[11px] text-slate-500">Mostrando registros del día • Orden: más antiguo al más nuevo</p>
                         </div>
                         <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-wrap">
@@ -426,7 +435,7 @@
                                     Hoy
                                 </button>
                             </div>
-                            <input type="text" id="filtro-texto-macro" oninput="cargarFrascosDetallados('tabla-pendientes-macro', 'macro')" class="border border-slate-300 rounded-lg px-3 py-2 sm:py-1.5 text-xs w-full sm:w-56" placeholder="Buscar por boleta, médico, paciente o código...">
+                            <input type="text" id="filtro-texto-macro" oninput="cargarFrascosDetallados('tabla-pendientes-macro', 'macro')" class="border border-slate-300 rounded-lg px-3 py-2 sm:py-1.5 text-xs w-full sm:w-56" placeholder="Buscar por orden, boleta, médico o paciente...">
                             <select id="filtro-estado-macro" onchange="cargarFrascosDetallados('tabla-pendientes-macro', 'macro')" class="border border-slate-300 rounded-lg px-2.5 py-2 sm:py-1.5 text-xs font-semibold w-full sm:w-auto">
                                 <option value="TODOS">Todos los estados</option>
                                 <option value="EN_RECEPCION">EN  RECEPCION</option>
@@ -439,9 +448,9 @@
                         <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[740px]">
                             <thead>
                                 <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
-                                    <th class="p-2 sm:p-2.5">Código Frasco</th>
+                                    <th class="p-2 sm:p-2.5">Orden (CE-XXX)</th>
                                     <th class="p-2 sm:p-2.5">Paciente</th>
-                                    <th class="p-2 sm:p-2.5">Muestra</th>
+                                    <th class="p-2 sm:p-2.5">Muestras</th>
                                     <th class="p-2 sm:p-2.5">N° Boleta / Comprobante *</th>
                                     <th class="p-2 sm:p-2.5">Médico Remitente</th>
                                     <th class="p-2 sm:p-2.5">Registrado Por</th>
@@ -517,7 +526,7 @@
                 <div class="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-slate-200">
                     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3">
                         <div>
-                            <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-700">Estado de Frascos Registrados</h3>
+                            <h3 class="text-xs sm:text-sm font-bold uppercase text-slate-700">Estado de Órdenes Registradas (CE-XXX)</h3>
                             <p id="subtitulo-fecha-gerencia" class="text-[11px] text-slate-500">Mostrando registros del día • Orden: más antiguo al más nuevo</p>
                         </div>
                         <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-wrap">
@@ -527,7 +536,7 @@
                                     Hoy
                                 </button>
                             </div>
-                            <input type="text" id="filtro-texto-gerencia" oninput="cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia')" class="border border-slate-300 rounded-lg px-3 py-2 sm:py-1.5 text-xs w-full sm:w-56" placeholder="Buscar por boleta, médico, paciente o código...">
+                            <input type="text" id="filtro-texto-gerencia" oninput="cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia')" class="border border-slate-300 rounded-lg px-3 py-2 sm:py-1.5 text-xs w-full sm:w-56" placeholder="Buscar por orden, boleta, médico o paciente...">
                             <select id="filtro-estado-gerencia" onchange="cargarFrascosDetallados('tabla-frascos-gerencia-detalle', 'gerencia')" class="border border-slate-300 rounded-lg px-2.5 py-2 sm:py-1.5 text-xs font-semibold w-full sm:w-auto">
                                 <option value="TODOS">Todos los estados</option>
                                 <option value="EN_RECEPCION">EN  RECEPCION</option>
@@ -540,9 +549,9 @@
                         <table class="w-full text-left border-collapse text-xs sm:text-sm min-w-[740px]">
                             <thead>
                                 <tr class="bg-slate-100 text-slate-600 border-b border-slate-200">
-                                    <th class="p-2 sm:p-2.5">Código Frasco</th>
+                                    <th class="p-2 sm:p-2.5">Orden (CE-XXX)</th>
                                     <th class="p-2 sm:p-2.5">Paciente</th>
-                                    <th class="p-2 sm:p-2.5">Muestra</th>
+                                    <th class="p-2 sm:p-2.5">Muestras</th>
                                     <th class="p-2 sm:p-2.5">N° Boleta / Comprobante *</th>
                                     <th class="p-2 sm:p-2.5">Médico Remitente</th>
                                     <th class="p-2 sm:p-2.5">Registrado Por</th>
@@ -581,7 +590,7 @@
         let contextoReporteFrasco = null;
         let claveCortesiaActiva = null;
         let claveActualizadaEn = null;
-        let cacheFrascosDetalleGerencia = new Map();
+        let cacheOrdenesDetalle = new Map();
 
         function esRolGerencia() {
             return rolActual === 'GERENCIA';
@@ -656,50 +665,87 @@
             return Number.isNaN(pct) ? 0 : Math.min(100, Math.max(0, pct));
         }
 
-        function calcularDatosEconomicosFrasco(frasco) {
-            const ord = frasco?.ordenes_patologia || {};
-            const montoNetoFrasco = Number(frasco?.monto_frasco || 0);
-            const pctDesc = extraerPorcentajeDescuentoMuestra(frasco?.descripcion_anatomica);
-            const estadoPago = frasco?.estado_pago_frasco || ord?.tipo_pago || '-';
+        function calcularDatosEconomicosOrden(frascosOrden, ordenBase) {
+            const ord = ordenBase || {};
+            const totalOrden = Number(ord?.monto_cobrado || 0);
+            const lista = Array.isArray(frascosOrden) ? frascosOrden : [];
 
-            let precioReal = montoNetoFrasco;
-            let montoDescuento = 0;
+            let precioRealSuma = 0;
+            let netoSuma = 0;
+            let descuentoSuma = 0;
+            let pctMax = 0;
+            const estadosPago = new Set();
 
-            if (estadoPago === 'INCLUIDO_PAQUETE') {
-                precioReal = Number(ord?.monto_cobrado || montoNetoFrasco || 0);
-                montoDescuento = 0;
-            } else if (estadoPago === 'CORTESIA_AUTORIZADA') {
-                precioReal = 0;
-                montoDescuento = 0;
-            } else if (pctDesc > 0 && pctDesc < 100) {
-                precioReal = montoNetoFrasco / (1 - (pctDesc / 100));
-                montoDescuento = Math.max(0, precioReal - montoNetoFrasco);
+            lista.forEach((f) => {
+                const montoNetoFrasco = Number(f?.monto_frasco || 0);
+                const pctDesc = extraerPorcentajeDescuentoMuestra(f?.descripcion_anatomica);
+                if (pctDesc > pctMax) pctMax = pctDesc;
+                const estadoPago = f?.estado_pago_frasco || ord?.tipo_pago || '-';
+                estadosPago.add(estadoPago);
+
+                if (estadoPago === 'INCLUIDO_PAQUETE') {
+                    netoSuma += montoNetoFrasco;
+                } else if (estadoPago === 'CORTESIA_AUTORIZADA') {
+                    netoSuma += 0;
+                } else if (pctDesc > 0 && pctDesc < 100) {
+                    const realF = montoNetoFrasco / (1 - (pctDesc / 100));
+                    precioRealSuma += realF;
+                    netoSuma += montoNetoFrasco;
+                    descuentoSuma += Math.max(0, realF - montoNetoFrasco);
+                } else {
+                    precioRealSuma += montoNetoFrasco;
+                    netoSuma += montoNetoFrasco;
+                }
+            });
+
+            const esPaquete = estadosPago.has('INCLUIDO_PAQUETE') || (totalOrden > 0 && netoSuma === 0 && !estadosPago.has('CORTESIA_AUTORIZADA'));
+            const precioConDescuento = totalOrden > 0 ? totalOrden : netoSuma;
+            let precioReal = precioRealSuma;
+            let montoDescuento = descuentoSuma;
+
+            if (esPaquete) {
+                if (pctMax > 0 && pctMax < 100) {
+                    precioReal = precioConDescuento / (1 - (pctMax / 100));
+                    montoDescuento = Math.max(0, precioReal - precioConDescuento);
+                } else {
+                    precioReal = precioConDescuento;
+                    montoDescuento = 0;
+                }
+            } else if (precioReal === 0 && precioConDescuento > 0) {
+                precioReal = precioConDescuento;
             }
 
+            const etiquetaPago = estadosPago.size === 1
+                ? Array.from(estadosPago)[0]
+                : (ord?.tipo_pago || 'MIXTO');
+
             return {
-                estadoPago,
+                estadoPago: etiquetaPago,
                 precioReal,
-                precioConDescuento: montoNetoFrasco,
-                pctDesc,
+                precioConDescuento,
+                pctDesc: pctMax,
                 montoDescuento,
-                totalOrden: Number(ord?.monto_cobrado || 0)
+                totalOrden
             };
         }
 
         async function abrirDetalleFrasco(claveCache) {
-            const frasco = cacheFrascosDetalleGerencia.get(String(claveCache));
-            if (!frasco) return;
+            const grupo = cacheOrdenesDetalle.get(String(claveCache));
+            if (!grupo) return;
 
-            const ord = frasco.ordenes_patologia || {};
-            const eco = calcularDatosEconomicosFrasco(frasco);
+            const frascos = ordenarFrascosCronologicamente(grupo.frascos || []);
+            const primerFrasco = frascos[0] || {};
+            const ord = primerFrasco.ordenes_patologia || grupo.ordenData || {};
+            const eco = calcularDatosEconomicosOrden(frascos, ord);
+            const estadoConsolidado = resolverEstadoConsolidadoOrden(frascos.map(f => f.estado));
             const drawer = document.getElementById('drawer-detalle-frasco');
 
-            document.getElementById('drawer-codigo-frasco').innerText = frasco.codigo_frasco || '-';
-            document.getElementById('drawer-subtitulo-orden').innerText = `Orden: ${ord.codigo_orden || 'Sin código de orden'}`;
+            document.getElementById('drawer-codigo-frasco').innerText = grupo.ordenBase || '---';
+            document.getElementById('drawer-subtitulo-orden').innerText = `Orden interna: ${ord.codigo_orden || 'Sin código de orden'}`;
 
             const badge = document.getElementById('drawer-estado-badge');
-            badge.className = `px-2.5 py-1 rounded-md text-[11px] font-bold ${obtenerClaseEstadoFrasco(frasco.estado)}`;
-            badge.innerText = formatearEtiqueta(frasco.estado);
+            badge.className = `px-2.5 py-1 rounded-md text-[11px] font-bold ${obtenerClaseEstadoFrasco(estadoConsolidado)}`;
+            badge.innerText = formatearEtiqueta(estadoConsolidado);
 
             document.getElementById('drawer-estado-pago').innerText = formatearEtiqueta(eco.estadoPago);
             document.getElementById('drawer-precio-real').innerText = formatearSoles(eco.precioReal);
@@ -713,29 +759,69 @@
             document.getElementById('drawer-paciente-dni').innerText = ord.paciente_dni || 'No registrado';
             document.getElementById('drawer-metodo-pago').innerText = formatearEtiqueta(ord.tipo_pago || '-');
             document.getElementById('drawer-comprobante').innerText = ord.numero_comprobante || '-';
-            document.getElementById('drawer-cantidad-frascos').innerText = ord.cantidad_frascos_declarados ? `${ord.cantidad_frascos_declarados} frasco(s)` : '-';
+            const cantTotal = ord.cantidad_frascos_declarados || frascos.length;
+            document.getElementById('drawer-cantidad-frascos').innerText = `${cantTotal} frasco(s)`;
             document.getElementById('drawer-medico-remitente').innerText = ord.medico_remitente || '-';
-            document.getElementById('drawer-muestra').innerText = frasco.descripcion_anatomica || '-';
+
+            const muestrasTexto = frascos.map(f => f.descripcion_anatomica).filter(Boolean).join(', ');
+            document.getElementById('drawer-muestra').innerText = muestrasTexto || '-';
+
+            // LISTADO DE FRASCOS (1 O MÁS)
+            const contadorEl = document.getElementById('drawer-contador-frascos');
+            const listaFrascosEl = document.getElementById('drawer-lista-frascos');
+            contadorEl.innerText = `${frascos.length} ${frascos.length === 1 ? 'frasco' : 'frascos'}`;
+
+            if (frascos.length === 0) {
+                listaFrascosEl.innerHTML = `<div class="bg-white border border-indigo-200 rounded-lg p-2.5 text-slate-500">Sin frascos registrados.</div>`;
+            } else {
+                listaFrascosEl.innerHTML = frascos.map((f) => {
+                    const badgeF = obtenerClaseEstadoFrasco(f.estado);
+                    const escInfo = f.escaneado_por
+                        ? `Escaneó: ${formatearRegistradoPor(f.escaneado_por)}${f.fecha_escaneo_macro ? ` (${formatearFechaHoraLegible(f.fecha_escaneo_macro)})` : ''}`
+                        : 'Pendiente de escaneo en macroscopía';
+
+                    return `
+                        <div class="bg-white border border-indigo-200 rounded-lg p-3 space-y-1.5">
+                            <div class="flex items-center justify-between gap-2 flex-wrap">
+                                <span class="font-mono font-bold text-slate-900 text-xs">${f.codigo_frasco}</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${badgeF}">${formatearEtiqueta(f.estado)}</span>
+                            </div>
+                            <p class="font-semibold text-slate-800">${f.descripcion_anatomica || '-'}</p>
+                            <div class="flex items-center justify-between gap-2 text-[11px] text-slate-500 pt-0.5 flex-wrap">
+                                <span>${formatearEtiqueta(f.estado_pago_frasco || ord.tipo_pago || '')} • ${formatearSoles(f.monto_frasco)}</span>
+                                <span>${escInfo}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
 
             document.getElementById('drawer-registrado-por').innerText = formatearRegistradoPor(ord.usuario_recepcion);
             document.getElementById('drawer-fecha-registro').innerText = formatearFechaHoraLegible(
-                frasco.fecha_creacion || frasco.created_at
+                primerFrasco.fecha_creacion || primerFrasco.created_at
             );
-            document.getElementById('drawer-escaneado-por').innerText = frasco.escaneado_por
-                ? formatearRegistradoPor(frasco.escaneado_por)
-                : 'Aún no escaneado';
-            document.getElementById('drawer-fecha-escaneo').innerText = formatearFechaHoraLegible(frasco.fecha_escaneo_macro);
+
+            const escaneados = frascos.filter(f => f.escaneado_por);
+            if (escaneados.length > 0) {
+                const ultimoEsc = escaneados[escaneados.length - 1];
+                const operadoresUnicos = Array.from(new Set(escaneados.map(f => formatearRegistradoPor(f.escaneado_por))));
+                document.getElementById('drawer-escaneado-por').innerText = operadoresUnicos.join(', ');
+                document.getElementById('drawer-fecha-escaneo').innerText = formatearFechaHoraLegible(ultimoEsc.fecha_escaneo_macro);
+            } else {
+                document.getElementById('drawer-escaneado-por').innerText = 'Aún no escaneado';
+                document.getElementById('drawer-fecha-escaneo').innerText = '-';
+            }
 
             const bloqueInc = document.getElementById('drawer-bloque-incidencias');
             const listaInc = document.getElementById('drawer-lista-incidencias');
             bloqueInc.classList.add('hidden');
             listaInc.innerHTML = '';
 
-            if (frasco.codigo_frasco) {
+            if (grupo.ordenBase) {
                 const { data: incidencias } = await db
                     .from('incidencias_huerfanos')
                     .select('*')
-                    .ilike('nombre_etiqueta_manual', `%${frasco.codigo_frasco}%`)
+                    .ilike('nombre_etiqueta_manual', `%${grupo.ordenBase}%`)
                     .order('fecha_deteccion', { ascending: false });
 
                 if (incidencias && incidencias.length > 0) {
@@ -1154,7 +1240,7 @@
             }
 
             canalRealtime = db
-                .channel('patologia-realtime-sync-v19')
+                .channel('patologia-realtime-sync-v20')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'correlativo_frascos' }, () => {
                     actualizarIndicadorUltimoFrasco();
                 })
@@ -1751,6 +1837,48 @@
             refrescarAreasActivas();
         });
 
+        function agruparFrascosPorOrden(frascosDia) {
+            const agrupadasMap = new Map();
+
+            ordenarFrascosCronologicamente(frascosDia).forEach((f) => {
+                const ordenBase = extraerCodigoOrdenBase(f.codigo_frasco);
+                const claveGrupo = f.orden_id ? `orden-${f.orden_id}` : `ce-${ordenBase}`;
+                const ord = f.ordenes_patologia || {};
+
+                if (!agrupadasMap.has(claveGrupo)) {
+                    agrupadasMap.set(claveGrupo, {
+                        claveGrupo,
+                        ordenBase,
+                        pacienteNombre: ord.paciente_nombre || '-',
+                        comprobante: ord.numero_comprobante || '-',
+                        medicoRemitente: ord.medico_remitente || '-',
+                        registradoPor: formatearRegistradoPor(ord.usuario_recepcion),
+                        muestras: [],
+                        estados: [],
+                        frascos: [],
+                        ordenData: ord,
+                        primerId: Number(f.id || 0)
+                    });
+                }
+
+                const grupo = agrupadasMap.get(claveGrupo);
+                if (f.descripcion_anatomica) grupo.muestras.push(f.descripcion_anatomica);
+                if (f.estado) grupo.estados.push(f.estado);
+                grupo.frascos.push(f);
+            });
+
+            return Array.from(agrupadasMap.values()).sort((a, b) => {
+                const matchA = String(a.ordenBase || '').match(/^([A-Z]{2})-(\d+)$/);
+                const matchB = String(b.ordenBase || '').match(/^([A-Z]{2})-(\d+)$/);
+                if (matchA && matchB) {
+                    const numA = parseInt(matchA[2], 10);
+                    const numB = parseInt(matchB[2], 10);
+                    if (numA !== numB) return numA - numB;
+                }
+                return a.primerId - b.primerId;
+            });
+        }
+
         async function cargarRecepcionVivo() {
             const fechaSel = document.getElementById('filtro-fecha-recepcion')?.value || obtenerFechaLocalYYYYMMDD();
             const subtitulo = document.getElementById('subtitulo-fecha-recepcion');
@@ -1764,41 +1892,8 @@
                 .order('id', { ascending: true })
                 .limit(200);
 
-            const frascosDia = ordenarFrascosCronologicamente(
-                (data || []).filter(f => perteneceAFechaSeleccionada(f, fechaSel))
-            );
-
-            const agrupadasMap = new Map();
-            frascosDia.forEach((f) => {
-                const ordenBase = extraerCodigoOrdenBase(f.codigo_frasco);
-                const claveGrupo = f.orden_id ? `orden-${f.orden_id}` : `ce-${ordenBase}`;
-
-                if (!agrupadasMap.has(claveGrupo)) {
-                    agrupadasMap.set(claveGrupo, {
-                        ordenBase,
-                        pacienteNombre: f.ordenes_patologia?.paciente_nombre || '-',
-                        muestras: [],
-                        registradoPor: formatearRegistradoPor(f.ordenes_patologia?.usuario_recepcion),
-                        estados: [],
-                        primerId: Number(f.id || 0)
-                    });
-                }
-
-                const grupo = agrupadasMap.get(claveGrupo);
-                if (f.descripcion_anatomica) grupo.muestras.push(f.descripcion_anatomica);
-                if (f.estado) grupo.estados.push(f.estado);
-            });
-
-            const ordenesAgrupadas = Array.from(agrupadasMap.values()).sort((a, b) => {
-                const matchA = String(a.ordenBase || '').match(/^([A-Z]{2})-(\d+)$/);
-                const matchB = String(b.ordenBase || '').match(/^([A-Z]{2})-(\d+)$/);
-                if (matchA && matchB) {
-                    const numA = parseInt(matchA[2], 10);
-                    const numB = parseInt(matchB[2], 10);
-                    if (numA !== numB) return numA - numB;
-                }
-                return a.primerId - b.primerId;
-            });
+            const frascosDia = (data || []).filter(f => perteneceAFechaSeleccionada(f, fechaSel));
+            const ordenesAgrupadas = agruparFrascosPorOrden(frascosDia);
 
             const tbody = document.getElementById('tabla-recepcion-vivo');
             if (!tbody) return;
@@ -1840,7 +1935,7 @@
             const fechaSel = document.getElementById(`filtro-fecha-${prefijoFiltro}`)?.value || obtenerFechaLocalYYYYMMDD();
             const subtitulo = document.getElementById(`subtitulo-fecha-${prefijoFiltro}`);
             if (subtitulo) {
-                subtitulo.innerText = `Mostrando registros ${formatearFechaLegible(fechaSel)} • Orden: más antiguo al más nuevo`;
+                subtitulo.innerText = `Mostrando órdenes ${formatearFechaLegible(fechaSel)} • Orden: más antiguo al más nuevo`;
             }
 
             const texto = (document.getElementById(`filtro-texto-${prefijoFiltro}`)?.value || '').trim().toLowerCase();
@@ -1852,61 +1947,65 @@
                 .order('id', { ascending: true })
                 .limit(200);
 
-            const filtrados = ordenarFrascosCronologicamente(
-                (data || []).filter(f => {
-                    if (!perteneceAFechaSeleccionada(f, fechaSel)) return false;
-                    if (estado !== 'TODOS' && f.estado !== estado) return false;
-                    if (!texto) return true;
+            const frascosDia = (data || []).filter(f => perteneceAFechaSeleccionada(f, fechaSel));
+            const ordenesAgrupadas = agruparFrascosPorOrden(frascosDia);
 
-                    const ord = f.ordenes_patologia || {};
-                    const campos = [
-                        f.codigo_frasco,
-                        ord.paciente_nombre,
-                        ord.paciente_dni,
-                        f.descripcion_anatomica,
-                        ord.numero_comprobante,
-                        ord.medico_remitente,
-                        ord.usuario_recepcion,
-                        f.escaneado_por
-                    ].map(v => String(v || '').toLowerCase());
+            const filtradas = ordenesAgrupadas.filter((grp) => {
+                const estadoOrden = resolverEstadoConsolidadoOrden(grp.estados);
+                if (estado !== 'TODOS' && estadoOrden !== estado) return false;
+                if (!texto) return true;
 
-                    return campos.some(c => c.includes(texto));
-                })
-            );
+                const ord = grp.ordenData || {};
+                const codigosFrascosStr = (grp.frascos || []).map(f => f.codigo_frasco).join(' ');
+                const campos = [
+                    grp.ordenBase,
+                    codigosFrascosStr,
+                    ord.codigo_orden,
+                    grp.pacienteNombre,
+                    ord.paciente_dni,
+                    grp.muestras.join(' '),
+                    grp.comprobante,
+                    grp.medicoRemitente,
+                    grp.registradoPor
+                ].map(v => String(v || '').toLowerCase());
 
-            if (filtrados.length === 0) {
+                return campos.some(c => c.includes(texto));
+            });
+
+            if (filtradas.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="8" class="p-4 text-center text-xs text-slate-400">No hay registros que coincidan con la fecha o filtros aplicados.</td>
+                        <td colspan="8" class="p-4 text-center text-xs text-slate-400">No hay órdenes que coincidan con la fecha o filtros aplicados.</td>
                     </tr>
                 `;
                 return;
             }
 
-            cacheFrascosDetalleGerencia.clear();
+            cacheOrdenesDetalle.clear();
 
-            tbody.innerHTML = filtrados.map((f, idx) => {
-                const claveCache = String(f.id ?? `${f.codigo_frasco}-${idx}`);
-                cacheFrascosDetalleGerencia.set(claveCache, f);
+            tbody.innerHTML = filtradas.map((grp, idx) => {
+                const claveCache = `${prefijoFiltro}-${grp.claveGrupo || idx}`;
+                cacheOrdenesDetalle.set(claveCache, grp);
 
-                const ord = f.ordenes_patologia || {};
-                const badgeClass = obtenerClaseEstadoFrasco(f.estado);
+                const estadoOrden = resolverEstadoConsolidadoOrden(grp.estados);
+                const badgeClass = obtenerClaseEstadoFrasco(estadoOrden);
+                const muestrasTexto = grp.muestras.length > 0 ? grp.muestras.join(', ') : '-';
 
                 return `
                 <tr class="hover:bg-slate-50/80 transition">
-                    <td class="p-2 sm:p-2.5 font-mono font-bold text-slate-800">${f.codigo_frasco}</td>
-                    <td class="p-2 sm:p-2.5">${ord.paciente_nombre || '-'}</td>
-                    <td class="p-2 sm:p-2.5">${f.descripcion_anatomica}</td>
-                    <td class="p-2 sm:p-2.5 font-mono text-xs font-semibold text-slate-700">${ord.numero_comprobante || '-'}</td>
-                    <td class="p-2 sm:p-2.5 text-slate-700">${ord.medico_remitente || '-'}</td>
-                    <td class="p-2 sm:p-2.5 text-slate-700 font-medium">${formatearRegistradoPor(ord.usuario_recepcion)}</td>
+                    <td class="p-2 sm:p-2.5 font-mono font-bold text-slate-800">${grp.ordenBase}</td>
+                    <td class="p-2 sm:p-2.5">${grp.pacienteNombre}</td>
+                    <td class="p-2 sm:p-2.5">${muestrasTexto}</td>
+                    <td class="p-2 sm:p-2.5 font-mono text-xs font-semibold text-slate-700">${grp.comprobante}</td>
+                    <td class="p-2 sm:p-2.5 text-slate-700">${grp.medicoRemitente}</td>
+                    <td class="p-2 sm:p-2.5 text-slate-700 font-medium">${grp.registradoPor}</td>
                     <td class="p-2 sm:p-2.5">
                         <span class="px-2 py-1 rounded-md text-[11px] sm:text-xs font-bold ${badgeClass}">
-                            ${formatearEtiqueta(f.estado)}
+                            ${formatearEtiqueta(estadoOrden)}
                         </span>
                     </td>
                     <td class="p-2 sm:p-2.5 text-center">
-                        <button type="button" onclick="abrirDetalleFrasco('${claveCache}')" title="Ver detalle completo del frasco" aria-label="Ver detalle del frasco ${f.codigo_frasco}" class="inline-flex items-center justify-center p-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-950 transition shadow-2xs">
+                        <button type="button" onclick="abrirDetalleFrasco('${claveCache}')" title="Ver detalle de la orden y sus frascos" aria-label="Ver detalle de la orden ${grp.ordenBase}" class="inline-flex items-center justify-center p-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 hover:text-slate-950 transition shadow-2xs">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
